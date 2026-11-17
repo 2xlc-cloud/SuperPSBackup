@@ -59,8 +59,8 @@
                   },
                   {
                       "Name":  "Test-TaskDialog.ps1",
-                      "Length":  23212,
-                      "SHA256":  "3590ECF913D7C31772B9F1126EB54C3FE91C1B337DE09B057FAB98BF687C6A30"
+                      "Length":  23608,
+                      "SHA256":  "E73DD7423F014EE1EBC4B055F83BBF01939A7467B5ED642CB31471F7601E5877"
                   },
                   {
                       "Name":  "FirstInstall.ps1",

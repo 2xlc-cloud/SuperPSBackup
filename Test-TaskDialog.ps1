@@ -217,28 +217,30 @@ try {
         & $ps -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand (($badXml.Task.Actions.Exec.Arguments -split ' ')[-1]) 2>$null
         Assert-Task ($LASTEXITCODE -eq 1 -and [IO.File]::ReadAllText($logFile) -match 'FEHLER') 'Fehlgeschlagene Pruefung wird protokolliert und mit Fehlercode beendet'
 
+        # Hinweis: Variablennamen wie $InstallRoot gehoeren dem per Dot-Sourcing geladenen Updater und werden dort ueberschrieben.
         # Automatische Installation: echte Minimalinstallation auf aelteren Stand setzen, dann den Befehl der Update-Aufgabe ausfuehren.
-        $installRoot = Join-Path $testRoot "auto-install [x]"
-        $null = New-Item -ItemType Directory -Path $installRoot
-        [IO.File]::Copy((Join-Path $PSScriptRoot 'FirstInstall.ps1'), (Join-Path $installRoot 'FirstInstall.ps1'))
-        $firstOutput = & $ps -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $installRoot 'FirstInstall.ps1') -NoStart -NoPause -SkipOptional 2>&1 | Out-String
+        $autoRoot = Join-Path $testRoot "auto-install [x]"
+        $null = New-Item -ItemType Directory -Path $autoRoot
+        [IO.File]::Copy((Join-Path $PSScriptRoot 'FirstInstall.ps1'), (Join-Path $autoRoot 'FirstInstall.ps1'))
+        $firstOutput = & $ps -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $autoRoot 'FirstInstall.ps1') -NoStart -NoPause -SkipOptional 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw $firstOutput }
         . (Join-Path $PSScriptRoot 'Update-UserProfileBackup.ps1')
-        $installedManifest = Test-BupUpdatePackage $installRoot
+        $installedManifest = Test-BupUpdatePackage $autoRoot
         $currentVersion = [version]$installedManifest.Version
-        $guiFile = Join-Path $installRoot 'Start-BackupGUI.ps1'
+        $guiFile = Join-Path $autoRoot 'Start-BackupGUI.ps1'
         [IO.File]::AppendAllText($guiFile, "`r`n# older runtime fixture`r`n")
         $installedManifest.Version = '1.0.2'
         $guiEntry = @($installedManifest.Files | Where-Object Name -eq 'Start-BackupGUI.ps1')[0]
         $guiEntry.Length = (Get-Item -LiteralPath $guiFile).Length
         $guiEntry.SHA256 = (Get-BupFileSha256 $guiFile)
-        $installedManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $installRoot 'update-manifest.json') -Encoding UTF8
+        $installedManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $autoRoot 'update-manifest.json') -Encoding UTF8
         $autoLogs = Join-Path $testRoot 'auto-logs'
-        [xml]$autoXml = & (Join-Path $installRoot 'Install-BackupTask.ps1') -UpdateTask -UpdateMode Install -LogRoot $autoLogs -PassThruXml
+        [xml]$autoXml = & (Join-Path $autoRoot 'Install-BackupTask.ps1') -UpdateTask -UpdateMode Install -LogRoot $autoLogs -PassThruXml
         & $ps -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand (($autoXml.Task.Actions.Exec.Arguments -split ' ')[-1])
         $autoExit = $LASTEXITCODE
         $autoLog = Join-Path $autoLogs 'update-task.log'
-        $autoManifest = Test-BupUpdatePackage $installRoot
+        $autoManifest = Test-BupUpdatePackage $autoRoot
+        Write-Output ("Info: Exit=$autoExit Version=$($autoManifest.Version) (vorher $currentVersion) Typ=$($autoManifest.InstallationType) Dateien=$($autoManifest.Files.Count) Log=" + $(if (Test-Path -LiteralPath $autoLog) { ([IO.File]::ReadAllText($autoLog)).Trim() } else { 'kein Log' }))
         Assert-Task ($autoExit -eq 0 -and [version]$autoManifest.Version -ge $currentVersion -and $autoManifest.InstallationType -eq 'Runtime' -and $autoManifest.Files.Count -eq 5 -and (Test-Path -LiteralPath $autoLog) -and [IO.File]::ReadAllText($autoLog) -match 'Updated') 'Update-Aufgabe (automatisch installieren) aktualisiert eine aeltere Minimalinstallation und bleibt bei fuenf Runtime-Dateien'
         Assert-Task (-not ([IO.File]::ReadAllText($guiFile)).Contains('older runtime fixture')) 'Die aktualisierte Datei stammt wieder aus GitHub'
         $taskLogs = Join-Path $testRoot 'task-logs'

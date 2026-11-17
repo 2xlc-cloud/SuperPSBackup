@@ -142,3 +142,27 @@ Alle Systemzugriffe sind einzelne Funktionen und im Test ersetzbar. Dadurch prue
 Nicht real getestet: die tatsaechliche Git-Installation per winget (Git ist auf dem Testrechner bereits vorhanden, es wurde nichts
 deinstalliert). Der winget-Aufruf ist durch Mocks (Argumente, Fehlercodes, fehlendes winget) abgedeckt.
 `Test-GUI.ps1` verhaelt sich unveraendert (200-Prozent-Pruefung scheitert am kleinen Arbeitsbereich dieses Bildschirms).
+## Nachtrag: Umbenennung in SuperPSBackup, Version 1.1.0 (2026-11-17)
+
+GitHub-Repository `2xlc-cloud/SuperPSBackup` (alte Adresse leitet weiter), Release `v1.1.0`.
+Neue Namen fuer Aufgaben, Datenordner, Verknuepfung und interne Bezeichner; Uebernahme bestehender Installationen
+(Datenordner, gespeicherte Pfade, Updatequelle, Backup- und Update-Aufgabe, Reparatur nach Umbenennen des Programmordners).
+Dateinamen `Backup-UserProfile.ps1`, `Restore-UserProfile.ps1`, `Update-UserProfileBackup.ps1` bleiben, damit aeltere Updater funktionieren.
+
+| Test | Ergebnis |
+|---|---|
+| `Test-Migration.ps1` (temporaerer Datenordner, Testaufgaben: Verschieben, Zusammenfuehren, Pfade, Updatequelle, Aufgaben mit Sonderzeichen/Tageszeit/Deaktiviert, Reparatur, nicht uebernehmbare Aufgabe) | 19 / 19 |
+| `Test-TaskDialog.ps1 -Online` (inkl. Update-Aufgabe "automatisch installieren" auf aelterer Minimalinstallation und im echten Aufgabenplaner) | 47 / 47 |
+| `Test-FirstInstall.ps1 -Online` | 48 / 48 |
+| `Test-OnlineUpdate.ps1` | 10 / 10 |
+| `Test-Update.ps1` / `Test-FirstInstall.ps1` / `Test-Backup.ps1` | 35 / 38 / 107 |
+| `Test-GUI.ps1` ohne 200-Prozent-Stufe | 37 (die 200-Prozent-Stufe scheitert weiter am kleinen Arbeitsbereich dieses Bildschirms) |
+| Installation Stand 1.0.5 mit alter Repository-Adresse fuehrt Selbstupdate auf 1.1.0 aus | Updated, 5 Dateien, Inhalte identisch |
+| Echte Aufgaben dieses Rechners (Backup und Update) migriert | beide Aufgaben unter neuem Namen, Datenordner verschoben |
+
+Gefundene und behobene Probleme: (1) Aeltere Updater lehnen jede Datei ausserhalb ihrer eigenen Liste ab; `Test-Migration.ps1`
+steht deshalb bewusst nicht im Manifest. (2) Der Updater berechnet SHA-256 per .NET (kein `Get-FileHash`), (3) Statusabfrage ohne
+Aufgabe meldete im Hintergrund faelschlich einen Fehler. Hinweis zur Testumgebung: Ein von PowerShell 7 (Store-Version) geerbter
+`PSModulePath` macht Windows PowerShell 5.1 unbrauchbar (es fehlen u. a. `Get-FileHash`, `Set-Content -Encoding`); die Tests laufen mit
+dem normalen Modulpfad. Der anonyme GitHub-API-Zugriff ist auf 60 Anfragen pro Stunde begrenzt; viele Online-Testlaeufe hintereinander
+koennen es ausschoepfen.
