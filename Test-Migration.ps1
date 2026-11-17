@@ -86,6 +86,19 @@ try {
     Assert-Migration ($report -match 'bereits unter neuem Namen' -and $null -eq (Get-TestTask $names.LegacyBackup) -and $null -ne (Get-TestTask $names.Backup)) 'Alte Aufgabe wird entfernt, wenn die neue bereits existiert; neue bleibt unveraendert'
     Remove-TestTasks
 
+    # ---------- Aufgabe zeigt auf einen anderen Programmordner (Ordner umbenannt/verschoben)
+    $oldHome = Join-Path $testRoot "Altes Programm 'X'"; $null = New-Item -ItemType Directory -Path $oldHome
+    foreach ($name in 'Install-BackupTask.ps1', 'Backup-UserProfile.ps1', 'Update-UserProfileBackup.ps1') { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $oldHome }
+    $null = & (Join-Path $oldHome 'Install-BackupTask.ps1') -BackupRoot $target -DelayMinutes 8 -TaskName $names.Backup
+    $null = & (Join-Path $oldHome 'Install-BackupTask.ps1') -UpdateTask -DelayMinutes 11 -TaskName $names.Update
+    Disable-ScheduledTask -TaskName $names.Update | Out-Null
+    Assert-Migration ((Get-TaskText (Get-TestTask $names.Backup)).Contains($oldHome.Replace("'", "''")) -and -not (Get-TaskText (Get-TestTask $names.Backup)).Contains($PSScriptRoot)) 'Ausgangslage: Aufgaben zeigen auf einen anderen Programmordner'
+    $report = Invoke-Migration
+    $repBackup = Get-TestTask $names.Backup; $repUpdate = Get-TestTask $names.Update
+    $repLogon = @($repBackup.Triggers | Where-Object { $_.CimClass.CimClassName -match 'Logon' })[0]
+    Assert-Migration ($report -match 'zeigt jetzt auf den Programmordner' -and (Get-TaskText $repBackup).Contains((Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')) -and (Get-TaskText $repUpdate).Contains((Join-Path $PSScriptRoot 'Update-UserProfileBackup.ps1')) -and $repLogon.Delay -eq 'PT8M' -and [string]$repUpdate.State -eq 'Disabled') 'Aufgaben werden auf den aktuellen Programmordner umgestellt; Verzoegerung und Deaktiviert bleiben erhalten'
+    Assert-Migration ((Invoke-Migration) -eq 'Nichts zu uebernehmen.') 'Nach der Reparatur ist ein weiterer Lauf ein Nullvorgang'
+    Remove-TestTasks
     # ---------- nicht uebernehmbare Aufgabe bleibt bestehen
     $missing = Join-Path $testRoot 'wird-geloescht'; $null = New-Item -ItemType Directory -Path $missing
     $null = & $installer -BackupRoot $missing -TaskName $names.LegacyBackup

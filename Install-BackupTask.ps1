@@ -80,8 +80,16 @@ if ($PSCmdlet.ParameterSetName -eq 'Migrate') {
         $legacyName = $names["Legacy$kind"]; $newName = $names[$kind]
         $label = if ($kind -eq 'Backup') { 'Backup-Aufgabe' } else { 'Update-Aufgabe' }
         $legacy = & $find $legacyName
-        if ($null -eq $legacy) { continue }
-        if ($null -ne (& $find $newName)) {
+        $repath = $false
+        if ($null -eq $legacy) {
+            # Keine alte Aufgabe: Eine neue Aufgabe reparieren, wenn sie auf einen anderen Programmordner zeigt (Ordner umbenannt/verschoben).
+            $current = & $find $newName
+            if ($null -eq $current) { continue }
+            $currentText = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(([string]$current.Actions[0].Arguments -split ' ')[-1]))
+            if ($currentText.IndexOf($PSScriptRoot.Replace("'", "''"), [StringComparison]::OrdinalIgnoreCase) -ge 0) { continue }
+            $legacy = $current; $repath = $true
+        }
+        elseif ($null -ne (& $find $newName)) {
             Unregister-ScheduledTask -TaskName $legacyName -Confirm:$false
             $report.Add("$label bereits unter neuem Namen vorhanden; alte Aufgabe entfernt.")
             continue
@@ -109,8 +117,8 @@ if ($PSCmdlet.ParameterSetName -eq 'Migrate') {
             }
             $null = & $PSCommandPath @plan
             if ([string]$legacy.State -eq 'Disabled') { Disable-ScheduledTask -TaskName $newName | Out-Null }
-            Unregister-ScheduledTask -TaskName $legacyName -Confirm:$false
-            $report.Add("$label uebernommen: $legacyName -> $newName")
+            if (-not $repath) { Unregister-ScheduledTask -TaskName $legacyName -Confirm:$false; $report.Add("$label uebernommen: $legacyName -> $newName") }
+            else { $report.Add("$label zeigt jetzt auf den Programmordner $PSScriptRoot ($newName).") }
         }
         catch { $report.Add("$label konnte nicht uebernommen werden (alte Aufgabe bleibt bestehen): $_") }
     }

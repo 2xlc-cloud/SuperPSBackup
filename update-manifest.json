@@ -9,8 +9,8 @@
                   },
                   {
                       "Name":  "Install-BackupTask.ps1",
-                      "Length":  14244,
-                      "SHA256":  "706671FA56C2CC84255AF252F152EE4CFE4442A32A3B4C88B090BE402B740B8D"
+                      "Length":  14944,
+                      "SHA256":  "6766F2AD4DC66101392DCC83A67ADDA9CA58E8D524FC5D26EECCF57A7B968F86"
                   },
                   {
                       "Name":  "Restore-UserProfile.ps1",
@@ -64,8 +64,8 @@
                   },
                   {
                       "Name":  "Test-Migration.ps1",
-                      "Length":  10077,
-                      "SHA256":  "B02CADE81DF286EEFDBBE693004F1EB142E92387A429CF83DEC6BFEB8C1C617E"
+                      "Length":  11828,
+                      "SHA256":  "2D604B759E5A9B3145FE3CF9A1FBC29ACF0A7573AD486148481F2945E73D0C32"
                   },
                   {
                       "Name":  "FirstInstall.ps1",
