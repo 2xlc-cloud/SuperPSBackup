@@ -14,10 +14,12 @@ param(
 )
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) { $InstallRoot = $PSScriptRoot }
 
+# Hinweis: Aeltere Updater lehnen jede Datei ausserhalb ihrer eigenen Liste ab. Neue Dateien hier erst aufnehmen,
+# wenn alle Installationen eine Version mit dieser Datei in der Liste haben (z. B. Test-Migration.ps1 bewusst nicht).
 function Get-BupUpdateFiles {
     @('Backup-UserProfile.ps1','Install-BackupTask.ps1','Restore-UserProfile.ps1',
       'Start-BackupGUI.ps1','Update-UserProfileBackup.ps1','New-UpdateManifest.ps1',
-      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','Test-FirstInstall.ps1','Test-TaskDialog.ps1','Test-Migration.ps1','FirstInstall.ps1','README.md')
+      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','Test-FirstInstall.ps1','Test-TaskDialog.ps1','FirstInstall.ps1','README.md')
 }
 
 function Get-BupRuntimeFiles {

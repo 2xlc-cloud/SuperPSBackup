@@ -18,7 +18,7 @@ Hilfsdienste erforderlich. PowerShell 7 ist ebenfalls getestet.
 | `New-UpdateManifest.ps1` | Version und Dateipruefsummen fuer eine Veroeffentlichung erzeugen |
 | `update-manifest.json` | Versionsstand und erlaubte Programmdateien mit SHA-256 |
 | `Test-Update.ps1` | Isolierte Tests von Download, Austausch, Sperren und Rollback |
-| `Test-Migration.ps1` | Tests der Uebernahme der frueheren Version (Datenordner, Einstellungen, Aufgaben) |
+| `Test-Migration.ps1` | Tests der Uebernahme der frueheren Version (nur im Repository, nicht im Update-Manifest) |
 | `Test-TaskDialog.ps1` | Tests des Dialogs "Aufgaben einrichten" und beider Aufgaben im Windows-Aufgabenplaner (`-Online` zusaetzlich gegen GitHub) |
 | `Test-OnlineUpdate.ps1` | Echter Download, Installation und Rollback in temporaerer Testinstallation |
 
