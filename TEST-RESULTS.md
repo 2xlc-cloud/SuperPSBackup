@@ -1,11 +1,11 @@
-# Veroeffentlichungs- und Testbericht 1.0.1
+# Veroeffentlichungs- und Testbericht 1.0.2
 
 Datum: 17.11.2026 (Europe/Berlin).
 
 Repository: https://github.com/2xlc-cloud/UserProfileBackup
 
-Gepruefter Programmstand: `e0a65245f314c7a94a656ceeaf9ad3fde6457bb2`.
-Programmversion laut Update-Manifest: **1.0.1**.
+Gepruefter Programmstand: `e44e6539b79c03aa000049bc144b6879f9d9d6b1`.
+Programmversion laut Update-Manifest: **1.0.2**.
 Testumgebung: Windows, Windows PowerShell **5.1.26100.9818**.
 
 ## Ergebnis
@@ -13,10 +13,10 @@ Testumgebung: Windows, Windows PowerShell **5.1.26100.9818**.
 | Testsatz | Erfolgreich | Fehler |
 |---|---:|---:|
 | `Test-Backup.ps1` | 103 | 0 |
-| `Test-GUI.ps1` mit Vorschau/Bedienereignissen | 48 | 0 |
+| `Test-GUI.ps1` mit Vorschau/Bedienereignissen | 49 | 0 |
 | `Test-Update.ps1` | 35 | 0 |
 | `Test-OnlineUpdate.ps1` gegen das oeffentliche GitHub-Repository | 10 | 0 |
-| **Gesamt** | **196** | **0** |
+| **Gesamt** | **197** | **0** |
 
 Alle vier Testprozesse wurden mit Exitcode 0 beendet. Die Tests verwendeten
 temporaere Testdaten; produktive Profilordner und geplante Aufgaben wurden
@@ -42,7 +42,7 @@ nicht veraendert. Erfolgreiche Testinstallationen wurden automatisch bereinigt.
 ## Echter Online-Test
 
 Eine isolierte Testinstallation mit Version 1.0.0 wurde ueber die oeffentliche
-GitHub-Quelle auf **1.0.1** aktualisiert. Downloads erfolgten anonym ueber HTTPS;
+GitHub-Quelle auf **1.0.2** aktualisiert. Downloads erfolgten anonym ueber HTTPS;
 die GitHub-Anmeldung wurde nur fuer Repository-Erstellung und Git-Push verwendet.
 
 1. Branch/Commit und neue Version vom echten GitHub-Endpunkt gelesen.
@@ -62,6 +62,12 @@ die GitHub-Anmeldung wurde nur fuer Repository-Erstellung und Git-Push verwendet
     Verlust der Test-Sicherungsdateien.
 
 ## Fehlerfaelle und Grenzen
+
+Bei der abschliessenden Codepruefung wurde eine moegliche Mehrfachausloesung der
+GUI-Updatebestaetigung behoben: Der Ergebnistimer wird jetzt vor dem modalen
+Dialog gestoppt. Ein zusaetzlicher Regressionstest prueft genau eine Rueckfrage
+und das Beenden des Vorgangs ohne Installation bei Ablehnung. Anschliessend
+wurde der echte Online-Test gegen Version 1.0.2 vollstaendig wiederholt.
 
 Die Offline-Tests pruefen unter anderem falsche Pruefsummen, Syntaxfehler,
 fehlende Dateien, nicht erlaubte Dateipfade, Downgrades, aktive Programmsperren,
