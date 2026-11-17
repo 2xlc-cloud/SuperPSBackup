@@ -97,3 +97,26 @@ powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File .\T
 Fuer den Online-Test kann `-SourceRef` auf die oben genannte Commit-ID gesetzt
 werden. Der Testbericht ist Dokumentation und gehoert nicht zu den automatisch
 ersetzten Programmdateien im Update-Manifest.
+
+## Nachtrag Version 1.0.3 (2026-11-17)
+
+Ausloeser: `FirstInstall.bat` meldete "Das Repository enthaelt noch keine geeignete Runtime-Version ab 1.0.3", weil auf GitHub nur 1.0.2 lag.
+
+Veroeffentlicht: Commit `0f6007b`, Tag/Release `v1.0.3` mit Asset `FirstInstall.bat`.
+Vor der Veroeffentlichung wurde nach Tokens, Passwoertern, Schluesseln und persoenlichen Pfaden gesucht (ohne Treffer);
+`*.lnk`, `GUI-Preview*.png`, `.program.lock`, Einstellungen und Logs bleiben per `.gitignore` ausgeschlossen.
+
+Beim Live-Test gefundene und behobene Fehler:
+1. `Get-FileHash` wurde im Batch-Bootstrap (`-Command` + Scriptblock) nicht gefunden. Ersetzt durch .NET-SHA-256.
+2. `Parser::ParseFile` und `Invoke-WebRequest -OutFile` werteten `[x]` im Ordnernamen als Platzhalter aus.
+   Erstinstallation und Updater laden jetzt ueber `Save-BupDownload` (WebClient, woertliche Pfade) und pruefen per `ParseInput`.
+
+| Test | Ergebnis |
+|---|---|
+| `Test-Update.ps1` | 35 / 35 |
+| `Test-FirstInstall.ps1` (offline) | 11 / 11 |
+| `Test-FirstInstall.ps1 -Online` (echtes GitHub, Pfad mit `[x]`, Selbstupdate, Rollback) | 19 / 19 |
+| `Test-OnlineUpdate.ps1` (Update, Backup, CLI-Rollback) | 10 / 10 |
+| `Test-Backup.ps1` | 104 / 104 |
+| `FirstInstall.bat` aus dem Release-Download, danach `-CheckOnly` | Version 1.0.3, kein Update offen |
+| `Test-GUI.ps1` | Bricht bei der 200-Prozent-Pruefung ab (Arbeitsbereich 1476x781 zu klein fuer den Kopfbereich); 100/125/150 Prozent bestehen. `Start-BackupGUI.ps1` ist unveraendert. |
