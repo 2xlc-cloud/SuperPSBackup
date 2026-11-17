@@ -21,6 +21,12 @@ exit /b %UPB_RESULT%
 #==POWERSHELL==#
 param([switch]$DefineOnly)
 
+function Get-BupSha256([string]$Path) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($Path)
+    try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','') }
+    finally { $stream.Dispose(); $sha.Dispose() }
+}
 function Invoke-BupFirstInstall {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$InstallerFile, [switch]$NoStart)
@@ -68,7 +74,7 @@ function Invoke-BupFirstInstall {
         foreach ($entry in $selected) {
             $file = Join-Path $stage $entry.Name
             Invoke-WebRequest -UseBasicParsing -Uri ($rawRoot + '/' + $entry.Name) -OutFile $file -Headers $headers -TimeoutSec 60 -ErrorAction Stop | Out-Null
-            if ((Get-Item -LiteralPath $file).Length -ne [long]$entry.Length -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $entry.SHA256) { throw "Pruefsummenfehler: $($entry.Name)" }
+            if ((Get-Item -LiteralPath $file).Length -ne [long]$entry.Length -or (Get-BupSha256 $file) -ne $entry.SHA256) { throw "Pruefsummenfehler: $($entry.Name)" }
             $tokens = $null; $errors = $null
             $null = [Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw "PowerShell-Syntaxfehler: $($entry.Name)" }
