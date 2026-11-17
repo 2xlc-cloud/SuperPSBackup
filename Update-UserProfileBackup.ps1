@@ -32,6 +32,14 @@ function ConvertTo-BupRuntimeManifest($Manifest) {
     return (Test-BupUpdateManifest $runtime)
 }
 
+function Get-BupFileSha256([string]$Path) {
+    # Eigene .NET-Berechnung: Get-FileHash ist in Windows PowerShell 5.1 nicht auffindbar, wenn der
+    # Modulpfad einer PowerShell-7-Sitzung (z. B. VS-Code-Terminal) geerbt wurde.
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($Path)
+    try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','') }
+    finally { $stream.Dispose(); $sha.Dispose() }
+}
 function Save-BupDownload([string]$Uri,[string]$Path,$Headers) {
     # WebClient nimmt Pfade woertlich; Invoke-WebRequest -OutFile wertet [x] als Platzhalter aus.
     $client = New-Object Net.WebClient
@@ -96,7 +104,7 @@ function Test-BupUpdatePackage([string]$Path) {
     foreach ($entry in $manifest.Files) {
         $file = Join-Path $Path $entry.Name
         $item = Get-Item -LiteralPath $file -Force -ErrorAction Stop
-        if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Length -ne [long]$entry.Length -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $entry.SHA256) { throw "Integritaetsfehler: $($entry.Name)" }
+        if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Length -ne [long]$entry.Length -or (Get-BupFileSha256 $file) -ne $entry.SHA256) { throw "Integritaetsfehler: $($entry.Name)" }
         if ($item.Extension -eq '.ps1') {
             $tokens = $null; $errors = $null
             $null = [Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
@@ -126,7 +134,7 @@ function Get-BupUpdateInfo([string]$RepositoryUrl, [string]$Ref, [string]$Instal
     $different = [version]$manifest.Version -gt [version]$installed.Version
     foreach ($entry in $manifest.Files) {
         $local = Join-Path $InstallRoot $entry.Name
-        if (-not (Test-Path -LiteralPath $local -PathType Leaf) -or (Get-FileHash -LiteralPath $local -Algorithm SHA256).Hash -ne $entry.SHA256) { $different = $true }
+        if (-not (Test-Path -LiteralPath $local -PathType Leaf) -or (Get-BupFileSha256 $local) -ne $entry.SHA256) { $different = $true }
     }
     [pscustomobject]@{ RepositoryUrl = $repository.Url; Ref = $Ref; Commit = $commit.sha; Version = $manifest.Version; InstalledVersion = $installed.Version; UpdateAvailable = $different; RawRoot = $rawRoot; Manifest = $manifest }
 }
@@ -167,13 +175,13 @@ function Restore-BupUpdateTransaction([string]$InstallRoot, $Transaction) {
         if ($entry.Existed) {
             $source = Join-Path $backup $entry.Name
             $item = Get-Item -LiteralPath $source -Force -ErrorAction Stop
-            if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $entry.SHA256) { throw "Beschaedigtes Rollback: $($entry.Name)" }
+            if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or (Get-BupFileSha256 $source) -ne $entry.SHA256) { throw "Beschaedigtes Rollback: $($entry.Name)" }
         }
     }
     foreach ($entry in $Transaction.Files) {
         $destination = Join-Path $InstallRoot $entry.Name
         if ($entry.Existed) {
-            if ((Test-Path -LiteralPath $destination -PathType Leaf) -and (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -eq $entry.SHA256) { continue }
+            if ((Test-Path -LiteralPath $destination -PathType Leaf) -and (Get-BupFileSha256 $destination) -eq $entry.SHA256) { continue }
             Set-BupProgramFile (Join-Path $backup $entry.Name) $destination
         }
         elseif (Test-Path -LiteralPath $destination) { [IO.File]::Delete($destination) }
@@ -208,7 +216,7 @@ function Install-BupUpdatePackage([string]$InstallRoot, [string]$PackagePath, [s
                 $item = Get-Item -LiteralPath $current -Force
                 if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Unsichere bestehende Programmdatei.' }
                 [IO.File]::Copy($current, (Join-Path $backup $name), $false)
-                $hash = (Get-FileHash -LiteralPath (Join-Path $backup $name) -Algorithm SHA256).Hash
+                $hash = (Get-BupFileSha256 (Join-Path $backup $name))
             }
             $inventory += [pscustomobject]@{ Name = $name; Existed = $exists; SHA256 = $hash }
         }

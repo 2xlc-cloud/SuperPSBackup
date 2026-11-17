@@ -1,6 +1,6 @@
 {
     "Format":  1,
-    "Version":  "1.0.4",
+    "Version":  "1.0.5",
     "Files":  [
                   {
                       "Name":  "Backup-UserProfile.ps1",
@@ -24,13 +24,13 @@
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
-                      "Length":  19690,
-                      "SHA256":  "BF2F62BB7820544B414D7E4B1F17270497FC20B4D809080B35B275F26D0A314F"
+                      "Length":  19995,
+                      "SHA256":  "0BBE0AAD71C3114CCBA39A1D823A61BA1807340789B5E39DD8DC339EF96AC7A1"
                   },
                   {
                       "Name":  "New-UpdateManifest.ps1",
-                      "Length":  1068,
-                      "SHA256":  "474A9DEE3754CB45AC1E0EE9CB4F5D00736267807286B993BAF6DFF635F25B55"
+                      "Length":  1037,
+                      "SHA256":  "DCB7EBAD9C0C26EEFBB6635EA781078AB8E5D1CA5F952C768859864173E90989"
                   },
                   {
                       "Name":  "Test-Backup.ps1",
@@ -59,8 +59,8 @@
                   },
                   {
                       "Name":  "Test-TaskDialog.ps1",
-                      "Length":  20839,
-                      "SHA256":  "6D775F138C006690490DB6D016E68FEF17B2A79B486677C5D9E1B506F46D1FE2"
+                      "Length":  23252,
+                      "SHA256":  "91C6A2789F1186A2FF1B2E5B676747D0DD3FE0303F2E1F512C53E233819FEED7"
                   },
                   {
                       "Name":  "FirstInstall.ps1",

@@ -11,7 +11,7 @@ $entries = @()
 foreach ($name in Get-BupUpdateFiles) {
     $file = Join-Path $SourcePath $name
     if (Test-Path -LiteralPath $file -PathType Leaf) {
-        $entries += [pscustomobject]@{ Name = $name; Length = (Get-Item -LiteralPath $file).Length; SHA256 = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash }
+        $entries += [pscustomobject]@{ Name = $name; Length = (Get-Item -LiteralPath $file).Length; SHA256 = (Get-BupFileSha256 $file) }
     }
 }
 $manifest = [pscustomobject]@{ Format = 1; Version = $Version; Files = $entries }
