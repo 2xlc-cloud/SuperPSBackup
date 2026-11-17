@@ -27,6 +27,14 @@ function Get-BupSha256([string]$Path) {
     try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','') }
     finally { $stream.Dispose(); $sha.Dispose() }
 }
+function Save-BupDownload([string]$Uri,[string]$Path,$Headers) {
+    $client = New-Object Net.WebClient
+    try {
+        foreach ($key in $Headers.Keys) { $client.Headers.Add([string]$key,[string]$Headers[$key]) }
+        $client.DownloadFile($Uri,$Path)
+    }
+    finally { $client.Dispose() }
+}
 function Invoke-BupFirstInstall {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$InstallerFile, [switch]$NoStart)
@@ -73,10 +81,10 @@ function Invoke-BupFirstInstall {
         $null = New-Item -ItemType Directory -Path $stage -ErrorAction Stop
         foreach ($entry in $selected) {
             $file = Join-Path $stage $entry.Name
-            Invoke-WebRequest -UseBasicParsing -Uri ($rawRoot + '/' + $entry.Name) -OutFile $file -Headers $headers -TimeoutSec 60 -ErrorAction Stop | Out-Null
+            Save-BupDownload ($rawRoot + '/' + $entry.Name) $file $headers
             if ((Get-Item -LiteralPath $file).Length -ne [long]$entry.Length -or (Get-BupSha256 $file) -ne $entry.SHA256) { throw "Pruefsummenfehler: $($entry.Name)" }
             $tokens = $null; $errors = $null
-            $null = [Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
+            $null = [Management.Automation.Language.Parser]::ParseInput([IO.File]::ReadAllText($file),[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw "PowerShell-Syntaxfehler: $($entry.Name)" }
         }
         $runtime = [pscustomobject]@{ Format = 1; Version = $manifest.Version; InstallationType = 'Runtime'; Files = $selected }

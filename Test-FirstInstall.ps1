@@ -43,12 +43,10 @@ try {
         if ($Uri.Contains('/commits/')) { return [pscustomobject]@{ sha = ('a' * 40) } }
         Get-Content -LiteralPath (Join-Path $script:mockPackage 'update-manifest.json') -Raw | ConvertFrom-Json
     }
-    function Invoke-WebRequest {
-        [CmdletBinding()]
-        param([switch]$UseBasicParsing,[string]$Uri,[string]$OutFile,$Headers,[int]$TimeoutSec)
+    function Save-BupDownload([string]$Uri,[string]$Path,$Headers) {
         if ($script:failDownload) { throw 'Test: Offline.' }
-        [IO.File]::Copy((Join-Path $script:mockPackage $Uri.Split('/')[-1]),$OutFile)
-        if ($script:badHash) { [IO.File]::AppendAllText($OutFile,'# tampered') }
+        [IO.File]::Copy((Join-Path $script:mockPackage $Uri.Split('/')[-1]),$Path)
+        if ($script:badHash) { [IO.File]::AppendAllText($Path,'# tampered') }
     }
     try {
         $installedRoot = New-FirstInstallFolder "offline [x] O'Brien & Co"
@@ -75,7 +73,7 @@ try {
         Assert-InstallRejected { Invoke-BupFirstInstall -InstallerFile (Join-Path $offline 'FirstInstall.bat') -NoStart } 'Netzwerkfehler sauber abgefangen'
         Assert-FirstInstall (@(Get-ChildItem -LiteralPath $offline -Force).Count -eq 1) 'Unvollstaendige Downloads entfernt'
     }
-    finally { Remove-Item -LiteralPath Function:\Invoke-RestMethod; Remove-Item -LiteralPath Function:\Invoke-WebRequest }
+    finally { Remove-Item -LiteralPath Function:\Invoke-RestMethod; Remove-Item -LiteralPath Function:\Save-BupDownload }
 
     if ($Online) {
         $onlineRoot = New-FirstInstallFolder "online [x] O'Brien & Co"

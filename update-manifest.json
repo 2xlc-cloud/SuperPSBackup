@@ -24,8 +24,8 @@
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
-                      "Length":  19337,
-                      "SHA256":  "42B0D22AFE126E3481943C0C181CDAD850EA23CB1C0FD1468EF4043C9EAD874D"
+                      "Length":  19649,
+                      "SHA256":  "EAF13F82BC32088BC6544A9119BD04D59CBAEFF3D5D0A714FDD716843C94FAD6"
                   },
                   {
                       "Name":  "New-UpdateManifest.ps1",
@@ -44,8 +44,8 @@
                   },
                   {
                       "Name":  "Test-Update.ps1",
-                      "Length":  12496,
-                      "SHA256":  "78217D4F2AC5E1929288DCC6215B212F9652B1F63B855672BDB488E1E6411528"
+                      "Length":  12402,
+                      "SHA256":  "E3F94611CD10A70FCEDA4989A76B4DC3928DA2CBF5A38344329C76FC6EA350E4"
                   },
                   {
                       "Name":  "Test-OnlineUpdate.ps1",
@@ -54,8 +54,8 @@
                   },
                   {
                       "Name":  "Test-FirstInstall.ps1",
-                      "Length":  10648,
-                      "SHA256":  "06EB72013FC06B9768178869E24A1D03024F562D9929F10C51F9DB90B5552408"
+                      "Length":  10555,
+                      "SHA256":  "09400DCBD14111D51FB512572536F207D96C57FAC095D45A8B8F42D6C43B71F1"
                   },
                   {
                       "Name":  "README.md",

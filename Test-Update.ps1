@@ -115,12 +115,10 @@ try {
         if ($Uri.Contains('/commits/')) { return [pscustomobject]@{ sha = ('a' * 40) } }
         Get-Content -LiteralPath (Join-Path $script:remotePackage 'update-manifest.json') -Raw | ConvertFrom-Json
     }
-    function Invoke-WebRequest {
-        [CmdletBinding()]
-        param([switch]$UseBasicParsing, [string]$Uri, [string]$OutFile, $Headers, [int]$TimeoutSec)
+    function Save-BupDownload([string]$Uri,[string]$Path,$Headers) {
         $script:requestedUrls.Add($Uri)
         if ($script:simulateDownloadFailure -and $Uri.EndsWith('/Restore-UserProfile.ps1')) { throw 'Test: Netzwerkverbindung unterbrochen.' }
-        [IO.File]::Copy((Join-Path $script:remotePackage ($Uri.Split('/')[-1])), $OutFile, $false)
+        [IO.File]::Copy((Join-Path $script:remotePackage ($Uri.Split('/')[-1])), $Path, $false)
     }
     $script:simulateDownloadFailure = $false
     try {
@@ -139,7 +137,7 @@ try {
         Assert-Rejected { Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $network.Installed } 'Downloadabbruch vor Dateiaustausch abgefangen'
         Assert-Update ((Read-BupUpdateManifest (Join-Path $network.Installed 'update-manifest.json')).Version -eq '1.0.0' -and @(Get-ChildItem -LiteralPath (Join-Path $network.Installed '.updates') -Directory -Filter 'stage-*').Count -eq 0) 'Netzwerkfehler belaesst alte Version und entfernt unvollstaendigen Download'
     }
-    finally { Remove-Item -LiteralPath Function:\Invoke-RestMethod; Remove-Item -LiteralPath Function:\Invoke-WebRequest }
+    finally { Remove-Item -LiteralPath Function:\Invoke-RestMethod; Remove-Item -LiteralPath Function:\Save-BupDownload }
     $passed = $true
     Write-Output "ERFOLGREICH: $script:updateChecks Update-Pruefungen mit PowerShell $($PSVersionTable.PSVersion)."
 }

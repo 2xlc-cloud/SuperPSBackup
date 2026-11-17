@@ -32,6 +32,16 @@ function ConvertTo-BupRuntimeManifest($Manifest) {
     return (Test-BupUpdateManifest $runtime)
 }
 
+function Save-BupDownload([string]$Uri,[string]$Path,$Headers) {
+    # WebClient nimmt Pfade woertlich; Invoke-WebRequest -OutFile wertet [x] als Platzhalter aus.
+    $client = New-Object Net.WebClient
+    try {
+        foreach ($key in $Headers.Keys) { $client.Headers.Add([string]$key,[string]$Headers[$key]) }
+        $client.DownloadFile($Uri,$Path)
+    }
+    finally { $client.Dispose() }
+}
+
 function Assert-BupUpdateDirectory([string]$Path) {
     $cursor = [IO.Path]::GetFullPath($Path)
     while ($cursor) {
@@ -266,7 +276,7 @@ function Invoke-BupUpdate {
         $null = New-Item -ItemType Directory -Path $stage
         try {
             foreach ($entry in $info.Manifest.Files) {
-                Invoke-WebRequest -UseBasicParsing -Uri ($info.RawRoot + '/' + $entry.Name) -OutFile (Join-Path $stage $entry.Name) -Headers @{ 'User-Agent' = 'UserProfileBackup-Updater' } -TimeoutSec 60 -ErrorAction Stop | Out-Null
+                Save-BupDownload ($info.RawRoot + '/' + $entry.Name) (Join-Path $stage $entry.Name) @{ 'User-Agent' = 'UserProfileBackup-Updater' }
             }
             $info.Manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $stage 'update-manifest.json') -Encoding UTF8
             Install-BupUpdatePackage $InstallRoot $stage $info.Commit
