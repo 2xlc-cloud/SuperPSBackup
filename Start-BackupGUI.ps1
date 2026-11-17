@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [string]$SettingsPath = (Join-Path $env:LOCALAPPDATA 'UserProfileBackup\gui-settings.json'),
+    [string]$SettingsPath = (Join-Path $env:LOCALAPPDATA 'SuperPSBackup\gui-settings.json'),
     [switch]$NoShow
 )
 
@@ -79,7 +79,7 @@ function New-BupUpdateDialog($Window) {
     $label = New-Object Windows.Forms.Label
     $label.Text = 'Repository-URL'; $label.SetBounds(20,95,140,28); $dialog.Controls.Add($label)
     $url = New-Object Windows.Forms.TextBox
-    $url.Text = 'https://github.com/2xlc-cloud/UserProfileBackup'
+    $url.Text = 'https://github.com/2xlc-cloud/SuperPSBackup'
     $url.SetBounds(170,92,465,28); $dialog.Controls.Add($url)
     $label = New-Object Windows.Forms.Label
     $label.Text = 'Branch / Tag'; $label.SetBounds(20,140,140,28); $dialog.Controls.Add($label)
@@ -128,7 +128,7 @@ function Get-BupUpdateLaunch($Window, $Info) {
 }
 
 function Read-BupGuiSettings([string]$Path) {
-    $settings = @{ BackupRoot = ''; LogRoot = (Join-Path $env:LOCALAPPDATA 'UserProfileBackup\Logs'); DelayMinutes = 2; DailyAt = ''; RetentionDays = 7; RetentionMonths = 12; RetentionYears = 5; LogDays = 30 }
+    $settings = @{ BackupRoot = ''; LogRoot = (Join-Path $env:LOCALAPPDATA 'SuperPSBackup\Logs'); DelayMinutes = 2; DailyAt = ''; RetentionDays = 7; RetentionMonths = 12; RetentionYears = 5; LogDays = 30 }
     if (Test-Path -LiteralPath $Path) {
         $saved = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
         foreach ($name in @('BackupRoot', 'LogRoot', 'DelayMinutes', 'DailyAt', 'RetentionDays', 'RetentionMonths', 'RetentionYears', 'LogDays')) {
@@ -236,7 +236,7 @@ function New-BupSettingsDialog($Window) {
 
 function Get-BupTaskNames {
     $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-    @{ Backup = 'UserProfileBackup-' + $sid; Update = 'UserProfileBackupUpdate-' + $sid }
+    @{ Backup = 'SuperPSBackup-' + $sid; Update = 'SuperPSBackupUpdate-' + $sid }
 }
 
 function Get-BupUpdateTaskSettingsPath([string]$SettingsPath) {
@@ -398,7 +398,7 @@ function New-BupTaskDialog($Window) {
     $s.BackupDaily.Checked = $Window.Controls.Daily.Checked
     $s.BackupTime.Text = $Window.Controls.Time.Text
     $updateSettings = Read-BupUpdateTaskSettings $Window.SettingsPath
-    $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud/UserProfileBackup'; $s.UpdateBranch.Text = 'main'
+    $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud/SuperPSBackup'; $s.UpdateBranch.Text = 'main'
     try {
         $sourcePath = Get-BupUpdateSourcePath $Window.SettingsPath
         if (Test-Path -LiteralPath $sourcePath) {
@@ -578,7 +578,7 @@ function New-BupGuiWindow([string]$ConfigurationPath) {
     # Alle Bounds sind fuer 96 DPI entworfen; erst den fertigen Baum skalieren.
     $form.AutoScaleDimensions = New-Object Drawing.SizeF(96, 96)
     $form.AutoScaleMode = 'Dpi'
-    $form.Text = 'Benutzerprofil-Backup'
+    $form.Text = 'SuperPSBackup'
     $form.ClientSize = New-Object Drawing.Size(900, 740)
     $form.MinimumSize = $form.Size
     $form.StartPosition = 'CenterScreen'
@@ -735,7 +735,7 @@ function New-BupGuiWindow([string]$ConfigurationPath) {
         $state.Retention = @{ RetentionDays = 7; RetentionMonths = 12; RetentionYears = 5; LogDays = 30 }
         Update-BupGuiRetentionLabel $state
         $state.Controls.Output.Text = "Einstellungen konnten nicht geladen werden: $_"
-        $state.Controls.Logs.Text = Join-Path $env:LOCALAPPDATA 'UserProfileBackup\Logs'
+        $state.Controls.Logs.Text = Join-Path $env:LOCALAPPDATA 'SuperPSBackup\Logs'
     }
     Set-BupDarkTheme $form
     Update-BupNavigation $state
@@ -814,13 +814,29 @@ function Invoke-BupGuiClick($Window, [string]$Action) {
     catch { $Window.LastError = [string]$_; $Window.Controls.Output.AppendText("FEHLER: $_`r`n"); $Window.Controls.Status.Text = 'Eingabe oder Vorgang fehlgeschlagen. Details im Ergebnisfeld.' }
 }
 
+function ConvertTo-BupCurrentSettingsPath([string]$Path) {
+    # Alte Updater starten die GUI mit dem Einstellungspfad der frueheren Version (UserProfileBackup).
+    $legacy = Join-Path $env:LOCALAPPDATA 'UserProfileBackup'
+    if ($Path.StartsWith($legacy + '\', [StringComparison]::OrdinalIgnoreCase)) { return (Join-Path $env:LOCALAPPDATA 'SuperPSBackup') + $Path.Substring($legacy.Length) }
+    return $Path
+}
 if ($MyInvocation.InvocationName -ne '.') {
     if (-not $NoShow -and [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') { throw 'Bitte die GUI mit powershell.exe -STA -File Start-BackupGUI.ps1 starten.' }
     [Windows.Forms.Application]::EnableVisualStyles()
     $programReadLock = [IO.File]::Open((Join-Path $PSScriptRoot '.program.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::ReadWrite)
     try {
         if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.updates\pending.json')) { throw 'Unabgeschlossenes Programmupdate. Bitte Update-UserProfileBackup.ps1 -Rollback ausfuehren.' }
+        # Fruehere Version (UserProfileBackup): Datenordner, Einstellungen und Aufgaben nur im Standardverzeichnis uebernehmen.
+        $SettingsPath = ConvertTo-BupCurrentSettingsPath $SettingsPath
+        $currentData = Join-Path $env:LOCALAPPDATA 'SuperPSBackup'
+        $migrationText = ''
+        if ($SettingsPath.StartsWith($currentData + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            try { $migrationText = [string](& (Join-Path $PSScriptRoot 'Install-BackupTask.ps1') -MigrateLegacy) }
+            catch { $migrationText = "Uebernahme der frueheren Version fehlgeschlagen: $_" }
+            if ($migrationText -eq 'Nichts zu uebernehmen.') { $migrationText = '' }
+        }
         $window = New-BupGuiWindow $SettingsPath
+        if ($migrationText) { $window.Controls.Output.AppendText("Umbenennung in SuperPSBackup:`r`n$($migrationText -replace "`n","`r`n")`r`n") }
         try { if (-not $NoShow) { $null = $window.Form.ShowDialog() } }
         finally { $window.Timer.Dispose(); $window.Form.Dispose() }
     }

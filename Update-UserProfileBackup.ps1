@@ -10,14 +10,14 @@ param(
     [int]$WaitForProcessId = 0,
     [switch]$RestartGUI,
     [switch]$ShowResult,
-    [string]$GuiSettingsPath = (Join-Path $env:LOCALAPPDATA 'UserProfileBackup\gui-settings.json')
+    [string]$GuiSettingsPath = (Join-Path $env:LOCALAPPDATA 'SuperPSBackup\gui-settings.json')
 )
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) { $InstallRoot = $PSScriptRoot }
 
 function Get-BupUpdateFiles {
     @('Backup-UserProfile.ps1','Install-BackupTask.ps1','Restore-UserProfile.ps1',
       'Start-BackupGUI.ps1','Update-UserProfileBackup.ps1','New-UpdateManifest.ps1',
-      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','Test-FirstInstall.ps1','Test-TaskDialog.ps1','FirstInstall.ps1','README.md')
+      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','Test-FirstInstall.ps1','Test-TaskDialog.ps1','Test-Migration.ps1','FirstInstall.ps1','README.md')
 }
 
 function Get-BupRuntimeFiles {
@@ -118,14 +118,14 @@ function Get-BupUpdateInfo([string]$RepositoryUrl, [string]$Ref, [string]$Instal
     $repository = Get-BupRepository $RepositoryUrl
     if ([string]::IsNullOrWhiteSpace($Ref)) { throw 'Branch/Tag darf nicht leer sein.' }
     if ($ExpectedCommit -and $ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'Ungueltige Commit-ID.' }
-    $headers = @{ 'User-Agent' = 'UserProfileBackup-Updater'; Accept = 'application/vnd.github+json' }
+    $headers = @{ 'User-Agent' = 'SuperPSBackup-Updater'; Accept = 'application/vnd.github+json' }
     $commitRef = $Ref
     if ($ExpectedCommit) { $commitRef = $ExpectedCommit }
     $encodedRef = [uri]::EscapeDataString($commitRef)
     $commit = Invoke-RestMethod -Uri "https://api.github.com/repos/$($repository.Owner)/$($repository.Name)/commits/$encodedRef" -Headers $headers -TimeoutSec 30 -ErrorAction Stop
     if ($commit.sha -notmatch '^[a-fA-F0-9]{40}$' -or ($ExpectedCommit -and $commit.sha -ne $ExpectedCommit)) { throw 'GitHub hat eine unerwartete Commit-ID geliefert.' }
     $rawRoot = "https://raw.githubusercontent.com/$($repository.Owner)/$($repository.Name)/$($commit.sha)"
-    $manifest = Test-BupUpdateManifest (Invoke-RestMethod -Uri "$rawRoot/update-manifest.json" -Headers @{ 'User-Agent' = 'UserProfileBackup-Updater' } -TimeoutSec 30 -ErrorAction Stop)
+    $manifest = Test-BupUpdateManifest (Invoke-RestMethod -Uri "$rawRoot/update-manifest.json" -Headers @{ 'User-Agent' = 'SuperPSBackup-Updater' } -TimeoutSec 30 -ErrorAction Stop)
     $installed = Read-BupUpdateManifest (Join-Path $InstallRoot 'update-manifest.json')
     if ($installed.PSObject.Properties['InstallationType'] -and $installed.InstallationType -eq 'Runtime') {
         $manifest = ConvertTo-BupRuntimeManifest $manifest
@@ -284,7 +284,7 @@ function Invoke-BupUpdate {
         $null = New-Item -ItemType Directory -Path $stage
         try {
             foreach ($entry in $info.Manifest.Files) {
-                Save-BupDownload ($info.RawRoot + '/' + $entry.Name) (Join-Path $stage $entry.Name) @{ 'User-Agent' = 'UserProfileBackup-Updater' }
+                Save-BupDownload ($info.RawRoot + '/' + $entry.Name) (Join-Path $stage $entry.Name) @{ 'User-Agent' = 'SuperPSBackup-Updater' }
             }
             $info.Manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $stage 'update-manifest.json') -Encoding UTF8
             Install-BupUpdatePackage $InstallRoot $stage $info.Commit
@@ -301,7 +301,7 @@ function Invoke-BupUpdate {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    $updateLog = Join-Path $env:LOCALAPPDATA 'UserProfileBackup\Updates'
+    $updateLog = Join-Path $env:LOCALAPPDATA 'SuperPSBackup\Updates'
     $null = New-Item -ItemType Directory -Path $updateLog -Force
     $logFile = Join-Path $updateLog ((Get-Date -Format 'yyyy-MM-dd') + '.log')
     try {
@@ -320,7 +320,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         Add-Content -LiteralPath $logFile -Value "$(Get-Date -Format o) FEHLER: $_" -Encoding UTF8
         if ($ShowResult) {
             Add-Type -AssemblyName System.Windows.Forms
-            $null = [Windows.Forms.MessageBox]::Show("Update fehlgeschlagen: $_`r`nProtokoll: $logFile", 'Benutzerprofil-Backup Update', 'OK', 'Error')
+            $null = [Windows.Forms.MessageBox]::Show("Update fehlgeschlagen: $_`r`nProtokoll: $logFile", 'SuperPSBackup Update', 'OK', 'Error')
         }
         throw
     }

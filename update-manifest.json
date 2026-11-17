@@ -1,16 +1,16 @@
 {
     "Format":  1,
-    "Version":  "1.0.5",
+    "Version":  "1.1.0",
     "Files":  [
                   {
                       "Name":  "Backup-UserProfile.ps1",
-                      "Length":  24886,
-                      "SHA256":  "79D2C79DDC0FDB10CD3A3DDC0042597E3720D27B6ED87A474B725FD97F9656FB"
+                      "Length":  24878,
+                      "SHA256":  "75DFDCD0C5EE2151663D36D36C9D7B65163F20216CFFCA49285E7766F58D9C57"
                   },
                   {
                       "Name":  "Install-BackupTask.ps1",
-                      "Length":  7609,
-                      "SHA256":  "261A4B6B56F3E0F18291E9962E629985CA1EEF654BF8471A01E3FC9B35AD1211"
+                      "Length":  14244,
+                      "SHA256":  "706671FA56C2CC84255AF252F152EE4CFE4442A32A3B4C88B090BE402B740B8D"
                   },
                   {
                       "Name":  "Restore-UserProfile.ps1",
@@ -19,13 +19,13 @@
                   },
                   {
                       "Name":  "Start-BackupGUI.ps1",
-                      "Length":  52807,
-                      "SHA256":  "1E7BE65AFE07777BA4DFE4E9812E0E060B00384C903428D1D8FDAE160D560BCA"
+                      "Length":  54027,
+                      "SHA256":  "961DA60A3AA1D92628918FCDE71FCB344BAE8BA94B088A98981BB0F6034E5C54"
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
-                      "Length":  19995,
-                      "SHA256":  "0BBE0AAD71C3114CCBA39A1D823A61BA1807340789B5E39DD8DC339EF96AC7A1"
+                      "Length":  19988,
+                      "SHA256":  "70A2C6A816309BBC0B720F068323C8433995C997445B2B2B283C0513235B566E"
                   },
                   {
                       "Name":  "New-UpdateManifest.ps1",
@@ -34,43 +34,48 @@
                   },
                   {
                       "Name":  "Test-Backup.ps1",
-                      "Length":  20797,
-                      "SHA256":  "CEA5CDE4EF1886E11BFD2C4F6B3A3D746E70D77B7B566AAC12B24C64B311221C"
+                      "Length":  20785,
+                      "SHA256":  "9CFCCA7BF340BC6808C6B80C9124A306CDC958FEDBB7D499F9EF0E099BE981A1"
                   },
                   {
                       "Name":  "Test-GUI.ps1",
-                      "Length":  19390,
-                      "SHA256":  "85323B20F00DC5F2D77FEC90D70F18250EA431D6873C2F1480F90E5B93E6755F"
+                      "Length":  19354,
+                      "SHA256":  "2CD858048E732D13DF6038920A717DBCF19F62E3A4945F4569631BF53A1DC729"
                   },
                   {
                       "Name":  "Test-Update.ps1",
-                      "Length":  12402,
-                      "SHA256":  "E3F94611CD10A70FCEDA4989A76B4DC3928DA2CBF5A38344329C76FC6EA350E4"
+                      "Length":  12366,
+                      "SHA256":  "9A51FCA885B0A426F779B2331472DBF0F5769D68EF0A0947BB1B4EC69BCE2BB6"
                   },
                   {
                       "Name":  "Test-OnlineUpdate.ps1",
-                      "Length":  7708,
-                      "SHA256":  "1D8D0BE478C878F04F22C5A4D764CBA7F90AC4466ABFF4C15F9F2D974EAB1063"
+                      "Length":  7696,
+                      "SHA256":  "9220ADEB18F3116176561182B7596A33057EC7B3C8B244B13888E4D059DC57C2"
                   },
                   {
                       "Name":  "Test-FirstInstall.ps1",
-                      "Length":  20779,
-                      "SHA256":  "5D2CA0B4BD0A2540173665235E4022643DCA8BD432495D4C6D8F727490BB6BF8"
+                      "Length":  20759,
+                      "SHA256":  "278AB2158ED4A39608E0202C564B42D1FB34C626E6F44B4F01060DC0D77FBE78"
                   },
                   {
                       "Name":  "Test-TaskDialog.ps1",
-                      "Length":  23252,
-                      "SHA256":  "91C6A2789F1186A2FF1B2E5B676747D0DD3FE0303F2E1F512C53E233819FEED7"
+                      "Length":  23212,
+                      "SHA256":  "3590ECF913D7C31772B9F1126EB54C3FE91C1B337DE09B057FAB98BF687C6A30"
+                  },
+                  {
+                      "Name":  "Test-Migration.ps1",
+                      "Length":  10077,
+                      "SHA256":  "B02CADE81DF286EEFDBBE693004F1EB142E92387A429CF83DEC6BFEB8C1C617E"
                   },
                   {
                       "Name":  "FirstInstall.ps1",
-                      "Length":  18527,
-                      "SHA256":  "9EFAD3C681AB9033497D0F96EC2C81242D413E092515E59A8BCFC7DAAEAD7E93"
+                      "Length":  18479,
+                      "SHA256":  "95175A100C854629835B09F9948E87EED3417E9BB539BC7E96DE42B1A147FBC4"
                   },
                   {
                       "Name":  "README.md",
-                      "Length":  30767,
-                      "SHA256":  "C226BC4EA31621AF36998BC4A71A9F72326DDC7FD886EBD2D02C56C5FF1AB726"
+                      "Length":  31997,
+                      "SHA256":  "B627D556AE91ADAEEDEF42B40D21B9F775579DDA3A278A13A4CA565A18536816"
                   }
               ]
 }

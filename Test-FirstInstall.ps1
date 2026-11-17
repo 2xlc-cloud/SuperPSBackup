@@ -4,7 +4,7 @@ param([switch]$Online)
 $ErrorActionPreference = 'Stop'
 $installerSource = Join-Path $PSScriptRoot 'FirstInstall.ps1'
 $installerText = [IO.File]::ReadAllText($installerSource)
-$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-FirstInstall-Test-' + [guid]::NewGuid().ToString('N'))
+$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-FirstInstall-Test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $sandbox
 $script:installChecks = 0; $testPassed = $false
 function Assert-FirstInstall([bool]$Condition, [string]$Message) {
@@ -36,7 +36,7 @@ try {
     $package = Join-Path $sandbox 'package'
     $null = New-Item -ItemType Directory -Path $package
     foreach ($name in Get-BupRuntimeFiles) { [IO.File]::Copy((Join-Path $PSScriptRoot $name),(Join-Path $package $name)) }
-    $null = & (Join-Path $PSScriptRoot 'New-UpdateManifest.ps1') -SourcePath $package -Version '1.0.3'
+    $null = & (Join-Path $PSScriptRoot 'New-UpdateManifest.ps1') -SourcePath $package -Version '1.1.0'
     $script:mockPackage = $package; $script:badHash = $false; $script:failDownload = $false; $script:downloads = 0
     # Netzwerk ersetzen
     function Invoke-RestMethod {
@@ -82,11 +82,11 @@ try {
         # --- Erstinstallation und Sonderzeichenpfad
         $installedRoot = New-FirstInstallFolder "offline [x] O'Brien & Co"
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $installedRoot) -NoStart 6>$null
-        Assert-FirstInstall ($result.Version -eq '1.0.3' -and $result.Files -eq 5) 'Installation nur mit den fuenf Laufzeit-Skripten'
+        Assert-FirstInstall ($result.Version -eq '1.1.0' -and $result.Files -eq 5) 'Installation nur mit den fuenf Laufzeit-Skripten'
         $manifest = Test-BupUpdatePackage $installedRoot
         Assert-FirstInstall ($manifest.InstallationType -eq 'Runtime' -and $manifest.Files.Count -eq 5 -and @(Get-ChildItem -LiteralPath $installedRoot -File).Count -eq 8) 'Runtime-Manifest, Installer und Verknuepfung ohne Entwicklungsdateien'
         $shell = New-Object -ComObject WScript.Shell
-        $link = $shell.CreateShortcut((Join-Path $installedRoot 'Benutzerprofil-Backup.lnk'))
+        $link = $shell.CreateShortcut((Join-Path $installedRoot 'SuperPSBackup.lnk'))
         $command = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(($link.Arguments -split ' ')[-1]))
         $null = [Management.Automation.Language.Parser]::ParseInput($command,[ref]$tokens,[ref]$errors)
         Assert-FirstInstall ($errors.Count -eq 0 -and $command.Contains("O''Brien & Co") -and $link.Arguments.Contains('-WindowStyle Hidden')) 'Startverknuepfung mit sicheren Sonderzeichenpfaden und versteckter Konsole'
@@ -125,13 +125,13 @@ try {
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $gitAuto) -NoStart -InstallMissing 6>$null
         $argLine = if ($script:wingetCalls.Count) { $script:wingetCalls[0] -join ' ' } else { '' }
         Assert-FirstInstall ($script:wingetCalls.Count -eq 1 -and $argLine -match 'install --id Git\.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements' -and $result.InstalledComponents -eq 'git') 'Fehlendes Git wird mit -InstallMissing per winget nachinstalliert'
-        Assert-FirstInstall ($result.Version -eq '1.0.3') 'Installation laeuft nach Git-Nachinstallation weiter'
+        Assert-FirstInstall ($result.Version -eq '1.1.0') 'Installation laeuft nach Git-Nachinstallation weiter'
 
         # --- Git: fehlt, nicht interaktiv und ohne -InstallMissing
         Reset-Mocks; $script:gitPath = $null; $script:interactive = $false
         $gitSkip = New-FirstInstallFolder 'git-noninteractive'
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $gitSkip) -NoStart 6>$null
-        Assert-FirstInstall ($script:wingetCalls.Count -eq 0 -and $result.Version -eq '1.0.3' -and [string]$result.InstalledComponents -eq '') 'Ohne Zustimmung wird Git nicht installiert, Programm trotzdem installiert'
+        Assert-FirstInstall ($script:wingetCalls.Count -eq 0 -and $result.Version -eq '1.1.0' -and [string]$result.InstalledComponents -eq '') 'Ohne Zustimmung wird Git nicht installiert, Programm trotzdem installiert'
 
         # --- Git: interaktive Rueckfrage
         Reset-Mocks; $script:gitPath = $null; $script:interactive = $true; $script:confirmAnswer = $true
@@ -141,7 +141,7 @@ try {
         Reset-Mocks; $script:gitPath = $null; $script:interactive = $true; $script:confirmAnswer = $false
         $gitNo = New-FirstInstallFolder 'git-no'
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $gitNo) -NoStart 6>$null
-        Assert-FirstInstall ($script:confirmAsked -eq 1 -and $script:wingetCalls.Count -eq 0 -and $result.Version -eq '1.0.3') 'Interaktive Rueckfrage mit Nein installiert Git nicht'
+        Assert-FirstInstall ($script:confirmAsked -eq 1 -and $script:wingetCalls.Count -eq 0 -and $result.Version -eq '1.1.0') 'Interaktive Rueckfrage mit Nein installiert Git nicht'
 
         # --- Git vorhanden / uebersprungen / Fehlerfaelle der Nachinstallation
         Reset-Mocks
@@ -155,11 +155,11 @@ try {
         Reset-Mocks; $script:gitPath = $null; $script:wingetPath = $null
         $noWinget = New-FirstInstallFolder 'no-winget'
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $noWinget) -NoStart -InstallMissing -WarningAction SilentlyContinue 6>$null
-        Assert-FirstInstall ($result.Version -eq '1.0.3' -and [string]$result.InstalledComponents -eq '') 'Ohne winget scheitert nur die optionale Git-Installation, nicht das Programm'
+        Assert-FirstInstall ($result.Version -eq '1.1.0' -and [string]$result.InstalledComponents -eq '') 'Ohne winget scheitert nur die optionale Git-Installation, nicht das Programm'
         Reset-Mocks; $script:gitPath = $null; $script:wingetExit = 1
         $wingetFail = New-FirstInstallFolder 'winget-fail'
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $wingetFail) -NoStart -InstallMissing -WarningAction SilentlyContinue 6>$null
-        Assert-FirstInstall ($script:wingetCalls.Count -eq 1 -and $result.Version -eq '1.0.3' -and [string]$result.InstalledComponents -eq '') 'winget-Fehlercode wird gemeldet, Programminstallation laeuft weiter'
+        Assert-FirstInstall ($script:wingetCalls.Count -eq 1 -and $result.Version -eq '1.1.0' -and [string]$result.InstalledComponents -eq '') 'winget-Fehlercode wird gemeldet, Programminstallation laeuft weiter'
         Reset-Mocks; $script:gitPath = $null; $script:gitAfterInstall = $null
         $gitMissingAfter = New-FirstInstallFolder 'git-not-found-after'
         $result = Invoke-BupFirstInstall -InstallerFile (Get-InstallerFile $gitMissingAfter) -NoStart -InstallMissing -WarningAction SilentlyContinue 6>$null
@@ -228,7 +228,7 @@ try {
         $guiEntry.Length = (Get-Item -LiteralPath (Join-Path $onlineRoot $guiEntry.Name)).Length
         $guiEntry.SHA256 = (Get-BupSha256 (Join-Path $onlineRoot $guiEntry.Name))
         $onlineManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $onlineRoot 'update-manifest.json') -Encoding UTF8
-        $updated = & (Join-Path $onlineRoot 'Update-UserProfileBackup.ps1') -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $onlineRoot
+        $updated = & (Join-Path $onlineRoot 'Update-UserProfileBackup.ps1') -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $onlineRoot
         $currentManifest = Test-BupUpdatePackage $onlineRoot
         Assert-FirstInstall ($updated.Status -eq 'Updated' -and $currentManifest.InstallationType -eq 'Runtime' -and $currentManifest.Files.Count -eq 5) 'Echtes Selbstupdate bleibt bei fuenf Runtime-Skripten'
         Assert-FirstInstall (@(Get-ChildItem -LiteralPath $onlineRoot -Filter 'Test-*.ps1').Count -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $onlineRoot 'New-UpdateManifest.ps1'))) 'Selbstupdate laedt keine Entwicklungs- oder Testdateien nach'
@@ -242,7 +242,7 @@ finally {
     if ($testPassed) {
         . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
         $resolved = [IO.Path]::GetFullPath($sandbox)
-        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^UserProfileBackup-FirstInstall-Test-[a-f0-9]{32}$') { throw 'Unsicherer FirstInstall-Testpfad.' }
+        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^SuperPSBackup-FirstInstall-Test-[a-f0-9]{32}$') { throw 'Unsicherer FirstInstall-Testpfad.' }
         for ($try = 1; $try -le 5; $try++) { try { Remove-BupTree $resolved; break } catch { if ($try -eq 5) { throw }; Start-Sleep -Seconds 2 } }
     }
     else { Write-Output "Testdaten: $sandbox" }

@@ -1,4 +1,4 @@
-# Benutzerprofil-Backup
+# SuperPSBackup
 
 Versionierte Dateisicherung fuer Windows 10/11 mit dem mitgelieferten Windows
 PowerShell 5.1. Keine Zusatzsoftware, Module, Administratorrechte oder laufenden
@@ -18,17 +18,18 @@ Hilfsdienste erforderlich. PowerShell 7 ist ebenfalls getestet.
 | `New-UpdateManifest.ps1` | Version und Dateipruefsummen fuer eine Veroeffentlichung erzeugen |
 | `update-manifest.json` | Versionsstand und erlaubte Programmdateien mit SHA-256 |
 | `Test-Update.ps1` | Isolierte Tests von Download, Austausch, Sperren und Rollback |
+| `Test-Migration.ps1` | Tests der Uebernahme der frueheren Version (Datenordner, Einstellungen, Aufgaben) |
 | `Test-TaskDialog.ps1` | Tests des Dialogs "Aufgaben einrichten" und beider Aufgaben im Windows-Aufgabenplaner (`-Online` zusaetzlich gegen GitHub) |
 | `Test-OnlineUpdate.ps1` | Echter Download, Installation und Rollback in temporaerer Testinstallation |
 
 ## Grafische Oberflaeche
 
-Falls lokal vorhanden, `Benutzerprofil-Backup.lnk` in diesem Projektordner
+Falls lokal vorhanden, `SuperPSBackup.lnk` in diesem Projektordner
 doppelklicken. Die Verknuepfung startet die GUI ohne zusaetzliches Konsolenfenster.
 Nach einem erstmaligen Download aus GitHub oder alternativ:
 
 ```powershell
-powershell.exe -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "$env:USERPROFILE\UserProfileBackup\Start-BackupGUI.ps1"
+powershell.exe -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "$env:USERPROFILE\SuperPSBackup\Start-BackupGUI.ps1"
 ```
 
 Die Oberflaeche verwendet Windows Forms und die bestehenden PowerShell-Skripte.
@@ -62,7 +63,7 @@ von den Textlabels; diese koennen ihn nicht mehr verdecken.
   werden. Im Ziel entstehen die Kategorieordner wie `Documents`.
 
 Die GUI speichert ihre Einstellungen unter
-`%LOCALAPPDATA%\UserProfileBackup\gui-settings.json`. **Einstellungen speichern**
+`%LOCALAPPDATA%\SuperPSBackup\gui-settings.json`. **Einstellungen speichern**
 aendert allein die GUI-Konfiguration; die Aufgabe wird erst durch **Installieren /
 aktualisieren** oder **Plan speichern** angepasst. Ein direkter CLI-Start des
 Backupskripts liest diese GUI-Datei nicht; dafuer weiterhin `-BackupRoot` angeben.
@@ -90,10 +91,24 @@ erhalten. Eine verkuerzte Frist entfernt beim Speichern noch keine Backups;
 die Bereinigung erfolgt erst nach einer erfolgreichen Sicherung. Monats- und
 Jahresstaende werden durch weitere manuelle Tagesstaende nicht ueberschrieben.
 
+## Umbenennung: UserProfileBackup wird SuperPSBackup
+
+Ab Version 1.1.0 heisst das Projekt **SuperPSBackup** (GitHub: `2xlc-cloud/SuperPSBackup`; die alte Adresse leitet GitHub weiter).
+Neue Namen: Aufgaben `SuperPSBackup-<SID>` und `SuperPSBackupUpdate-<SID>`, Datenordner `%LOCALAPPDATA%\SuperPSBackup`,
+Startverknuepfung `SuperPSBackup.lnk`.
+
+Bestehende Installationen werden **automatisch uebernommen**: Beim ersten Start der GUI (oder mit
+`.\Install-BackupTask.ps1 -MigrateLegacy`) werden der alte Datenordner (Einstellungen, Protokolle) verschoben,
+gespeicherte Pfade und die Updatequelle auf die neuen Namen umgestellt und die alten Aufgaben unter neuem Namen neu
+angelegt (Ziel, Aufbewahrung, Verzoegerung, Tageszeit, Modus und Aktiv/Deaktiviert bleiben erhalten), danach entfernt.
+Laesst sich eine Aufgabe nicht uebernehmen (z. B. Sicherungsziel nicht erreichbar), bleibt die alte unveraendert bestehen
+und die Meldung steht im Ergebnisfeld. Sicherungsdateien werden nie angefasst.
+Unveraendert bleiben die Dateinamen `Backup-UserProfile.ps1`, `Restore-UserProfile.ps1` und
+`Update-UserProfileBackup.ps1` sowie die Funktionsnamen, damit das Selbstupdate aelterer Versionen weiter funktioniert.
 ## Erstinstallation (FirstInstall.ps1)
 
 `FirstInstall.ps1` installiert die fuenf Laufzeit-Skripte aus GitHub in einen **leeren Ordner**, in dem
-nur diese Datei liegt (Release-Asset von [v1.0.3](https://github.com/2xlc-cloud/UserProfileBackup/releases/latest)).
+nur diese Datei liegt (Release-Asset von [v1.0.3](https://github.com/2xlc-cloud/SuperPSBackup/releases/latest)).
 Es werden keine Test- oder Entwicklungsdateien geladen, vorhandene Dateien nie ueberschrieben.
 
 ```powershell
@@ -105,7 +120,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\FirstInstall.ps1 -InstallM
 ```
 
 Ablauf: 1. Zielordner pruefen (erst dann wird irgendetwas installiert), 2. Systemcheck, 3. fehlende Komponenten
-nachinstallieren, 4. Download mit SHA-256-Pruefung, 5. Startverknuepfung `Benutzerprofil-Backup.lnk`.
+nachinstallieren, 4. Download mit SHA-256-Pruefung, 5. Startverknuepfung `SuperPSBackup.lnk`.
 
 | Pruefpunkt | Art | Bei Fehler |
 |---|---|---|
@@ -136,11 +151,11 @@ oder den Aufruf mit `-ExecutionPolicy Bypass` wie oben verwenden.
 4. In einem normalen, nicht erhoehten PowerShell-Fenster ausfuehren:
 
 ```powershell
-Set-Location (Join-Path $env:USERPROFILE 'UserProfileBackup')
+Set-Location (Join-Path $env:USERPROFILE 'SuperPSBackup')
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-BackupTask.ps1 -BackupRoot 'E:\ProfilBackups'
 ```
 
-Dadurch entsteht `UserProfileBackup-<Benutzer-SID>` in der Windows-Aufgabenplanung.
+Dadurch entsteht `SuperPSBackup-<Benutzer-SID>` in der Windows-Aufgabenplanung.
 Eine erneute Installation aktualisiert dieselbe Aufgabe. Es wird kein Kennwort
 gespeichert und keine UAC-Erhoehung angefordert. Unternehmensrichtlinien koennen
 die Registrierung oder Skriptausfuehrung dennoch untersagen; das Skript meldet
@@ -193,7 +208,7 @@ Administratorrechte.
 
 | | Backup-Aufgabe | Update-Aufgabe |
 |---|---|---|
-| Name | `UserProfileBackup-<SID>` | `UserProfileBackupUpdate-<SID>` |
+| Name | `SuperPSBackup-<SID>` | `SuperPSBackupUpdate-<SID>` |
 | Start | nach Anmeldung (Standard 2 Min.), optional taeglich | nach Anmeldung (Standard 10 Min.), optional taeglich |
 | Aktion | `Backup-UserProfile.ps1` mit Aufbewahrung | `Update-UserProfileBackup.ps1` fuer die gewaehlte Quelle |
 | Optionen | Sicherungsziel, Protokollordner, Aufbewahrung | Repository-URL, Branch/Tag, **Nur pruefen** (Standard) oder **automatisch installieren** |
@@ -304,7 +319,7 @@ bleiben; entscheidend ist der vom Betriebssystem verwaltete Dateihandle.
 
 ## Protokolle und Fehler
 
-Standard: `%LOCALAPPDATA%\UserProfileBackup\Logs\yyyy-MM-dd.log`.
+Standard: `%LOCALAPPDATA%\SuperPSBackup\Logs\yyyy-MM-dd.log`.
 Ein anderes Verzeichnis laesst sich mit `-LogRoot` beim Backup und bei der
 Aufgabeninstallation waehlen. Standardmaessig werden die letzten 30 Kalendertage
 aufbewahrt; mit dem Einstellungsdialog bzw. `-LogDays` ist die Frist anpassbar.
@@ -399,7 +414,7 @@ Die GUI-Pruefungen enthalten Ueberlagerungs- und Begrenzungspruefungen bei
 ## Aufgabe entfernen
 
 ```powershell
-$taskName = 'UserProfileBackup-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$taskName = 'SuperPSBackup-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 Unregister-ScheduledTask -TaskName $taskName -Confirm
 ```
 
@@ -412,7 +427,7 @@ Ein installiertes Git, GitHub CLI, Zugangstoken oder weitere Module sind auf den
 Backup-Rechnern nicht erforderlich. GitLab, selbst gehostete Git-Server und
 private Repositories werden von dieser Version nicht angesprochen.
 
-Quelle: `https://github.com/2xlc-cloud/UserProfileBackup`, Branch `main`.
+Quelle: `https://github.com/2xlc-cloud/SuperPSBackup`, Branch `main`.
 Die Adresse `https://github.com/2xlc-cloud` allein ist ein Benutzerprofil,
 keine Updatequelle. Der Updater laedt ausschliesslich veroeffentlichte Dateien;
 er legt selbst keine GitHub-Repositories an.
@@ -421,7 +436,7 @@ er legt selbst keine GitHub-Repositories an.
 
 Unter **Install → Updates ...** Repository-URL und Branch/Tag eintragen und
 **Auf Updates pruefen** anklicken. Die Quelle wird separat unter
-`%LOCALAPPDATA%\UserProfileBackup\update-source.json` gespeichert. Eine andere
+`%LOCALAPPDATA%\SuperPSBackup\update-source.json` gespeichert. Eine andere
 GUI-Konfiguration mit `-SettingsPath` verwendet deren uebergeordneten Ordner.
 
 Die Pruefung zeigt installierte und verfuegbare Version sowie die Commit-ID.
@@ -441,10 +456,10 @@ Vor der Installation alle GUI-Fenster schliessen und laufende Sicherungen abwart
 
 ```powershell
 # Nur pruefen, keine Programmdateien austauschen:
-.\Update-UserProfileBackup.ps1 -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -Ref main -CheckOnly
+.\Update-UserProfileBackup.ps1 -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -Ref main -CheckOnly
 
 # Pruefen und bei einer neuen Version installieren:
-.\Update-UserProfileBackup.ps1 -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -Ref main
+.\Update-UserProfileBackup.ps1 -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -Ref main
 
 # Nach Speichern einer Updatequelle in der GUI sind RepositoryUrl/Ref optional:
 .\Update-UserProfileBackup.ps1 -CheckOnly
@@ -481,7 +496,7 @@ Vor dem Austausch speichert das Skript die bisher betroffenen Programmdateien
 unter `.updates\rollback-<ID>` im Programmverzeichnis. Dateien werden einzeln
 atomar ersetzt. Falls ein Dateiaustausch scheitert, setzt es die bereits
 geaenderten Dateien zurueck. Kurzzeitige Dateisperren werden begrenzt erneut
-versucht. Diese Programmkopien sind getrennt von den Benutzerprofil-Backups und
+versucht. Diese Programmkopien sind getrennt von den SuperPSBackup-Sicherungen und
 werden nicht durch deren Aufbewahrungsrotation entfernt.
 
 Bei Stromausfall kann eine Mischung aus Programmversionen zurueckbleiben:
@@ -494,7 +509,7 @@ Bei beschaedigten Rollback-Dateien wird die Wiederherstellung mit Fehler beendet
 ohne diese als gueltig auszugeben. Vorherige Rollback-Ordner bleiben zur Diagnose
 erhalten; `-Rollback` verwendet den letzten Vorgang.
 
-Update-Protokolle: `%LOCALAPPDATA%\UserProfileBackup\Updates\yyyy-MM-dd.log`.
+Update-Protokolle: `%LOCALAPPDATA%\SuperPSBackup\Updates\yyyy-MM-dd.log`.
 Die Offline-Tests pruefen den Updateablauf mit lokalen Paketen und simulierten
 GitHub-Antworten. Der echte Onlineablauf ist separat wiederholbar:
 
@@ -513,7 +528,7 @@ Veroeffentlichungspruefung stehen in `TEST-RESULTS.md`.
 
 ### Version auf GitHub veroeffentlichen
 
-1. Ein oeffentliches Repository `2xlc-cloud/UserProfileBackup` mit Branch `main`
+1. Ein oeffentliches Repository `2xlc-cloud/SuperPSBackup` mit Branch `main`
    anlegen. Die Programmdateien gehoeren ins Repository-Hauptverzeichnis.
 2. Aenderungen entwickeln und die drei Tests ausfuehren:
 

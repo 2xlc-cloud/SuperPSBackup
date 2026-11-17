@@ -3,7 +3,7 @@
 param([string]$PreviewPath = '')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Start-BackupGUI.ps1')
-$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-GUI-Test-' + [guid]::NewGuid().ToString('N'))
+$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-GUI-Test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $testRoot
 $script:guiChecks = 0
 function Assert-Gui([bool]$Condition, [string]$Message) {
@@ -30,10 +30,10 @@ try {
     Assert-Gui (-not $gui.Form.Visible -and $gui.Controls.Delay.Value -eq 2) 'Unsichtbarer Testaufbau, Standardverzoegerung zwei Minuten'
     $updateDialog = New-BupUpdateDialog $gui
     try {
-        Assert-Gui ($updateDialog.BackColor.R -lt 50 -and $updateDialog.Tag.Repository.Text -eq 'https://github.com/2xlc-cloud/UserProfileBackup' -and $updateDialog.Tag.Branch.Text -eq 'main') 'Dunkler Updatedialog mit vorbereiteter GitHub-Quelle'
+        Assert-Gui ($updateDialog.BackColor.R -lt 50 -and $updateDialog.Tag.Repository.Text -eq 'https://github.com/2xlc-cloud/SuperPSBackup' -and $updateDialog.Tag.Branch.Text -eq 'main') 'Dunkler Updatedialog mit vorbereiteter GitHub-Quelle'
     }
     finally { $updateDialog.Dispose() }
-    $fakeInfo = [pscustomobject]@{ RepositoryUrl = 'https://github.com/2xlc-cloud/UserProfileBackup'; Ref = "release/O'Brien"; Commit = ('a' * 40) }
+    $fakeInfo = [pscustomobject]@{ RepositoryUrl = 'https://github.com/2xlc-cloud/SuperPSBackup'; Ref = "release/O'Brien"; Commit = ('a' * 40) }
     $launch = Get-BupUpdateLaunch $gui $fakeInfo
     $launchText = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(($launch.Arguments -split ' ')[-1]))
     $launchTokens = $null; $launchErrors = $null
@@ -48,7 +48,7 @@ try {
         return $false
     }
     $completedUpdateCheck = [PowerShell]::Create()
-    $null = $completedUpdateCheck.AddScript({ [pscustomobject]@{ UpdateAvailable = $true; Version = '1.0.2'; InstalledVersion = '1.0.1'; RepositoryUrl = 'https://github.com/2xlc-cloud/UserProfileBackup'; Commit = ('a' * 40) } })
+    $null = $completedUpdateCheck.AddScript({ [pscustomobject]@{ UpdateAvailable = $true; Version = '1.0.2'; InstalledVersion = '1.0.1'; RepositoryUrl = 'https://github.com/2xlc-cloud/SuperPSBackup'; Commit = ('a' * 40) } })
     $completedHandle = $completedUpdateCheck.BeginInvoke()
     while (-not $completedHandle.IsCompleted) { Start-Sleep -Milliseconds 10 }
     $gui.Worker = [pscustomobject]@{ PowerShell = $completedUpdateCheck; Handle = $completedHandle; Action = 'UpdateCheck' }
@@ -123,7 +123,7 @@ try {
     Assert-Gui ($taskCommand.Contains('-RetentionDays 14 -RetentionMonths 24 -RetentionYears 8 -LogDays 10') -and -not $taskCommand.Contains('ForceSnapshot')) 'Geplante Backups erhalten Aufbewahrung, jedoch keine manuelle Mehrfachausfuehrung'
     $scheduler = New-Object -ComObject Schedule.Service
     $scheduler.Connect()
-    $null = $scheduler.GetFolder('\').RegisterTask('UserProfileBackup-GUI-ValidateOnly', $xml.OuterXml, 1, $null, $null, 3, $null)
+    $null = $scheduler.GetFolder('\').RegisterTask('SuperPSBackup-GUI-ValidateOnly', $xml.OuterXml, 1, $null, $null, 3, $null)
     Assert-Gui $true 'Erweiterte Aufgaben-XML von Windows validiert, keine Aufgabe angelegt'
     $data.SourceFolders = @{ Documents = $source }
     Start-BupGuiWork $gui Backup $data
@@ -193,7 +193,7 @@ try {
         $saveButton.PerformClick()
         Assert-Gui ($gui.Controls.Status.Text.StartsWith('Einstellungen gespeichert')) 'Echter Button-Click erreicht GUI-Ereignisbehandlung'
         $gui.Controls.Root.Text = 'E:\ProfilBackups'
-        $gui.Controls.Logs.Text = '%LOCALAPPDATA%\UserProfileBackup\Logs'
+        $gui.Controls.Logs.Text = '%LOCALAPPDATA%\SuperPSBackup\Logs'
         $gui.Controls.Output.Text = 'Bereit. Waehlen Sie ein Sicherungsziel und installieren Sie die Aufgabe.'
         $gui.Controls.Status.Text = 'Bereit.'
         $gui.Form.CreateControl()
@@ -235,10 +235,10 @@ try {
             $updatePreview.Tag.Repository.Text = 'https://github.com/2xlc-cloud'
             $updatePreview.Tag.CheckButton.PerformClick()
             Assert-Gui ($updatePreview.DialogResult -ne 'OK' -and $updatePreview.Tag.ErrorLabel.Text.Length -gt 0) 'GitHub-Profil allein wird im Updatedialog nicht als Repository gespeichert'
-            $updatePreview.Tag.Repository.Text = 'https://github.com/2xlc-cloud/UserProfileBackup'
+            $updatePreview.Tag.Repository.Text = 'https://github.com/2xlc-cloud/SuperPSBackup'
             $updatePreview.Tag.CheckButton.PerformClick()
             $savedSource = Get-Content -LiteralPath (Get-BupUpdateSourcePath $gui.SettingsPath) -Raw | ConvertFrom-Json
-            Assert-Gui ($updatePreview.DialogResult -eq 'OK' -and $savedSource.RepositoryUrl -eq 'https://github.com/2xlc-cloud/UserProfileBackup' -and $savedSource.Ref -eq 'main') 'Updatequelle gespeichert, ohne einen Download oder eine Installation zu starten'
+            Assert-Gui ($updatePreview.DialogResult -eq 'OK' -and $savedSource.RepositoryUrl -eq 'https://github.com/2xlc-cloud/SuperPSBackup' -and $savedSource.Ref -eq 'main') 'Updatequelle gespeichert, ohne einen Download oder eine Installation zu starten'
             $bitmap = New-Object Drawing.Bitmap($updatePreview.Width,$updatePreview.Height)
             try {
                 $updatePreview.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$updatePreview.Width,$updatePreview.Height)))
@@ -256,6 +256,6 @@ finally {
     # Nur der selbst erzeugte, gepruefte Testordner wird durch den bestehenden Helper entfernt.
     . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
     $resolved = [IO.Path]::GetFullPath($testRoot)
-    if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^UserProfileBackup-GUI-Test-[a-f0-9]{32}$') { throw 'Unsicherer GUI-Testpfad.' }
+    if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^SuperPSBackup-GUI-Test-[a-f0-9]{32}$') { throw 'Unsicherer GUI-Testpfad.' }
     Remove-BupTree $resolved
 }

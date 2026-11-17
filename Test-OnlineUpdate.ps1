@@ -1,13 +1,13 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [string]$SourceRepository = 'https://github.com/2xlc-cloud/UserProfileBackup',
+    [string]$SourceRepository = 'https://github.com/2xlc-cloud/SuperPSBackup',
     [string]$SourceRef = 'main',
     [switch]$KeepTestData
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Update-UserProfileBackup.ps1')
-$caseRoot = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-Online-Test-' + [guid]::NewGuid().ToString('N'))
+$caseRoot = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-Online-Test-' + [guid]::NewGuid().ToString('N'))
 $testInstallation = Join-Path $caseRoot 'program'
 $null = New-Item -ItemType Directory -Path $testInstallation -Force
 $script:onlineChecks = 0
@@ -85,7 +85,7 @@ finally {
     if ($testPassed -and -not $KeepTestData) {
         . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
         $resolved = [IO.Path]::GetFullPath($caseRoot)
-        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^UserProfileBackup-Online-Test-[a-f0-9]{32}$') { throw 'Unsicherer Online-Testpfad.' }
+        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^SuperPSBackup-Online-Test-[a-f0-9]{32}$') { throw 'Unsicherer Online-Testpfad.' }
         Remove-BupTree $resolved
     }
     else { Write-Output "Testdaten: $caseRoot" }

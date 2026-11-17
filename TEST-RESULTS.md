@@ -2,7 +2,7 @@
 
 Datum: 17.11.2026 (Europe/Berlin).
 
-Repository: https://github.com/2xlc-cloud/UserProfileBackup
+Repository: https://github.com/2xlc-cloud/SuperPSBackup
 
 Gepruefter Programmstand: `e44e6539b79c03aa000049bc144b6879f9d9d6b1`.
 Programmversion laut Update-Manifest: **1.0.2**.
@@ -89,7 +89,7 @@ Fenster. Es wurden keine sichtbaren Dialoge automatisch bestaetigt.
 
 ```powershell
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\Test-Backup.ps1
-powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File .\Test-GUI.ps1 -PreviewPath "$env:TEMP\UserProfileBackup-GUI.png"
+powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File .\Test-GUI.ps1 -PreviewPath "$env:TEMP\SuperPSBackup-GUI.png"
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\Test-Update.ps1
 powershell.exe -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File .\Test-OnlineUpdate.ps1
 ```

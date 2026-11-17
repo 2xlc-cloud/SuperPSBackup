@@ -7,10 +7,10 @@ param([switch]$Online)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Start-BackupGUI.ps1')
 $installer = Join-Path $PSScriptRoot 'Install-BackupTask.ps1'
-$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-TaskDialog-Test-' + [guid]::NewGuid().ToString('N'))
+$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-TaskDialog-Test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $testRoot
 $suffix = [guid]::NewGuid().ToString('N').Substring(0, 8)
-$testNames = @{ Backup = "UserProfileBackupTest-B-$suffix"; Update = "UserProfileBackupTest-U-$suffix" }
+$testNames = @{ Backup = "SuperPSBackupTest-B-$suffix"; Update = "SuperPSBackupTest-U-$suffix" }
 $script:checks = 0
 function Assert-Task([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "TASKDIALOG-TEST FEHLGESCHLAGEN: $Message" }
@@ -64,7 +64,7 @@ try {
     Assert-Task (-not $installCommand.Contains('-CheckOnly') -and $installXml.Task.Triggers.LogonTrigger.Delay -eq 'PT3M' -and -not $installXml.Task.Triggers.CalendarTrigger) 'Update-Aufgabe: Modus Install ohne -CheckOnly, eigene Verzoegerung, ohne Tagestrigger'
     $scheduler = New-Object -ComObject Schedule.Service
     $scheduler.Connect()
-    foreach ($candidate in @($xml, $installXml)) { $null = $scheduler.GetFolder('\').RegisterTask('UserProfileBackup-TaskDialog-ValidateOnly', $candidate.OuterXml, 1, $null, $null, 3, $null) }
+    foreach ($candidate in @($xml, $installXml)) { $null = $scheduler.GetFolder('\').RegisterTask('SuperPSBackup-TaskDialog-ValidateOnly', $candidate.OuterXml, 1, $null, $null, 3, $null) }
     Assert-Task $true 'Update-Aufgaben-XML von Windows validiert, keine Aufgabe angelegt'
     Assert-Rejected { & $installer -UpdateTask -UpdateRepositoryUrl 'https://evil.example/x/y' -PassThruXml } 'Fremde Updatequelle (kein GitHub) abgewiesen'
     Assert-Rejected { & $installer -UpdateTask -UpdateRepositoryUrl 'https://github.com/../x' -PassThruXml } 'Repository mit Pfadsprung abgewiesen'
@@ -95,20 +95,20 @@ try {
     $taskButton = @($gui.Buttons | Where-Object Tag -eq 'Tasks')[0]
     Assert-Task ($null -ne $taskButton -and $taskButton.Parent -eq $taskPage -and $taskButton.Bounds.Bottom -le $gui.Controls.Tabs.Parent.ClientSize.Height -and $taskButton.Bounds.Right -le $gui.Controls.Tabs.Parent.ClientSize.Width -and $taskButton.Text -match 'Aufgaben einrichten') 'Button "Aufgaben einrichten ..." auf der Seite Taskplanung vorhanden und sichtbar platziert'
     $realTaskNames = Get-BupTaskNames
-    Assert-Task ($realTaskNames.Backup -like 'UserProfileBackup-S-*' -and $realTaskNames.Update -like 'UserProfileBackupUpdate-S-*') 'Standardnamen der beiden Aufgaben sind benutzerbezogen'
+    Assert-Task ($realTaskNames.Backup -like 'SuperPSBackup-S-*' -and $realTaskNames.Update -like 'SuperPSBackupUpdate-S-*') 'Standardnamen der beiden Aufgaben sind benutzerbezogen'
 
     $dialog = New-BupTaskDialog $gui
     try {
         $s = $dialog.Tag
         Assert-Task ($dialog.BackColor.R -lt 50 -and $s.BackupEnabled.Checked -and -not $s.UpdateEnabled.Checked -and $s.BackupState.Text -match 'nicht eingerichtet' -and $s.UpdateState.Text -match 'nicht eingerichtet') 'Dialog dunkel; ohne vorhandene Aufgaben ist nur die Backup-Aufgabe vorausgewaehlt'
-        Assert-Task ($s.UpdateMode.SelectedIndex -eq 0 -and $s.UpdateDelay.Value -eq 10 -and -not $s.UpdateDaily.Checked -and $s.UpdateUrl.Text -eq 'https://github.com/2xlc-cloud/UserProfileBackup' -and $s.UpdateBranch.Text -eq 'main') 'Update-Standardwerte: nur pruefen, 10 Minuten, offizielle Quelle, main'
+        Assert-Task ($s.UpdateMode.SelectedIndex -eq 0 -and $s.UpdateDelay.Value -eq 10 -and -not $s.UpdateDaily.Checked -and $s.UpdateUrl.Text -eq 'https://github.com/2xlc-cloud/SuperPSBackup' -and $s.UpdateBranch.Text -eq 'main') 'Update-Standardwerte: nur pruefen, 10 Minuten, offizielle Quelle, main'
         Assert-Task (-not $s.UpdateUrl.Enabled -and -not $s.UpdateMode.Enabled -and $s.BackupDelay.Enabled -and -not $s.BackupTime.Enabled) 'Eingabefelder folgen den Haken'
         $s.UpdateEnabled.Checked = $true; $s.BackupDaily.Checked = $true
         Assert-Task ($s.UpdateUrl.Enabled -and $s.UpdateMode.Enabled -and $s.UpdateDelay.Enabled -and -not $s.UpdateTime.Enabled -and $s.BackupTime.Enabled) 'Haken aktiviert Felder und Uhrzeitfelder'
         Show-OffScreen $dialog
         $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud'; $s.OkButton.PerformClick()
         Assert-Task ($dialog.DialogResult -ne 'OK' -and $s.ErrorLabel.Text.Length -gt 0) 'Dialog weist GitHub-Profil ohne Repository ab'
-        $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud/UserProfileBackup'; $s.UpdateBranch.Text = 'a b'; $s.ErrorLabel.Text = ''; $s.OkButton.PerformClick()
+        $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud/SuperPSBackup'; $s.UpdateBranch.Text = 'a b'; $s.ErrorLabel.Text = ''; $s.OkButton.PerformClick()
         Assert-Task ($dialog.DialogResult -ne 'OK' -and $s.ErrorLabel.Text.Length -gt 0) 'Dialog weist ungueltigen Branch ab'
         $s.UpdateBranch.Text = 'main'; $s.UpdateDaily.Checked = $true; $s.UpdateTime.Text = '29:99'; $s.ErrorLabel.Text = ''; $s.OkButton.PerformClick()
         Assert-Task ($dialog.DialogResult -ne 'OK' -and $s.ErrorLabel.Text.Length -gt 0) 'Dialog weist ungueltige Update-Uhrzeit ab'
@@ -125,7 +125,7 @@ try {
         $saved = Read-BupGuiSettings $gui.SettingsPath
         $savedUpdate = Read-BupUpdateTaskSettings $gui.SettingsPath
         $savedSource = Get-Content -LiteralPath (Get-BupUpdateSourcePath $gui.SettingsPath) -Raw | ConvertFrom-Json
-        Assert-Task ($saved.DelayMinutes -eq 7 -and $saved.DailyAt -eq '20:15' -and $savedUpdate.Mode -eq 'Install' -and $savedUpdate.DelayMinutes -eq 12 -and $savedUpdate.DailyAt -eq '04:45' -and $savedSource.RepositoryUrl -eq 'https://github.com/2xlc-cloud/UserProfileBackup') 'Backup- und Update-Einstellungen gespeichert'
+        Assert-Task ($saved.DelayMinutes -eq 7 -and $saved.DailyAt -eq '20:15' -and $savedUpdate.Mode -eq 'Install' -and $savedUpdate.DelayMinutes -eq 12 -and $savedUpdate.DailyAt -eq '04:45' -and $savedSource.RepositoryUrl -eq 'https://github.com/2xlc-cloud/SuperPSBackup') 'Backup- und Update-Einstellungen gespeichert'
     }
     finally { $dialog.Dispose() }
 
@@ -264,6 +264,6 @@ finally {
     if ($null -ne $gui) { $gui.Timer.Stop(); if ($null -ne $gui.Worker) { $gui.Worker.PowerShell.Stop(); $gui.Worker.PowerShell.Dispose() }; $gui.Timer.Dispose(); $gui.Form.Dispose() }
     . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
     $resolved = [IO.Path]::GetFullPath($testRoot)
-    if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^UserProfileBackup-TaskDialog-Test-[a-f0-9]{32}$') { throw 'Unsicherer Testpfad.' }
+    if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^SuperPSBackup-TaskDialog-Test-[a-f0-9]{32}$') { throw 'Unsicherer Testpfad.' }
     for ($try = 1; $try -le 5; $try++) { try { Remove-BupTree $resolved; break } catch { if ($try -eq 5) { Write-Warning "Testordner nicht entfernt: $resolved" } else { Start-Sleep -Seconds 2 } } }
 }

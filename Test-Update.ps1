@@ -3,7 +3,7 @@
 param()
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Update-UserProfileBackup.ps1')
-$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-Update-Test-' + [guid]::NewGuid().ToString('N'))
+$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-Update-Test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $sandbox
 $script:updateChecks = 0
 function Assert-Update([bool]$Condition, [string]$Message) {
@@ -39,8 +39,8 @@ function Assert-Rejected([scriptblock]$Action, [string]$Message) {
 }
 $passed = $false
 try {
-    $repo = Get-BupRepository 'https://github.com/2xlc-cloud/UserProfileBackup.git'
-    Assert-Update ($repo.Url -eq 'https://github.com/2xlc-cloud/UserProfileBackup') 'GitHub-URL einschliesslich .git normalisiert'
+    $repo = Get-BupRepository 'https://github.com/2xlc-cloud/SuperPSBackup.git'
+    Assert-Update ($repo.Url -eq 'https://github.com/2xlc-cloud/SuperPSBackup') 'GitHub-URL einschliesslich .git normalisiert'
     foreach ($url in @('https://github.com/2xlc-cloud','http://github.com/a/b','https://example.org/a/b','file:///C:/temp','https://github.com/a/b/tree/main')) {
         Assert-Rejected { Get-BupRepository $url } "Unsichere oder unvollstaendige Quelle abgewiesen: $url"
     }
@@ -122,19 +122,19 @@ try {
     }
     $script:simulateDownloadFailure = $false
     try {
-        $check = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $remote.Installed -CheckOnly
+        $check = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $remote.Installed -CheckOnly
         Assert-Update ($check.UpdateAvailable -and $check.Commit -eq ('a' * 40) -and -not (Test-Path -LiteralPath (Join-Path $remote.Installed '.updates'))) 'Updatepruefung liefert Version/Commit ohne Installation'
-        $downloaded = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $remote.Installed -ExpectedCommit ('a' * 40)
+        $downloaded = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $remote.Installed -ExpectedCommit ('a' * 40)
         Assert-Update ($downloaded.Status -eq 'Updated' -and $downloaded.Commit -eq ('a' * 40)) 'Vollstaendiger Download-, Pruef- und Installationsablauf'
         Assert-Update (@($script:requestedUrls | Where-Object { $_.Contains('raw.githubusercontent.com') -and -not $_.Contains('/' + ('a' * 40) + '/') }).Count -eq 0) 'Alle Dateien stammen aus demselben festgelegten Commit'
-        $upToDate = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $remote.Installed -CheckOnly
+        $upToDate = Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $remote.Installed -CheckOnly
         Assert-Update (-not $upToDate.UpdateAvailable) 'Aktuelle identische Installation wird erkannt'
-        Assert-Rejected { Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $remote.Installed -ExpectedCommit ('b' * 40) } 'Unerwartete Commit-Antwort wird abgewiesen'
+        Assert-Rejected { Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $remote.Installed -ExpectedCommit ('b' * 40) } 'Unerwartete Commit-Antwort wird abgewiesen'
         Assert-Rejected { Invoke-BupUpdate -InstallRoot $remote.Installed -WaitForProcessId $PID } 'Updater wartet nicht auf sich selbst'
         $network = New-UpdateFixture 'network-failure'
         $script:remotePackage = $network.Candidate
         $script:simulateDownloadFailure = $true
-        Assert-Rejected { Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/UserProfileBackup' -InstallRoot $network.Installed } 'Downloadabbruch vor Dateiaustausch abgefangen'
+        Assert-Rejected { Invoke-BupUpdate -RepositoryUrl 'https://github.com/2xlc-cloud/SuperPSBackup' -InstallRoot $network.Installed } 'Downloadabbruch vor Dateiaustausch abgefangen'
         Assert-Update ((Read-BupUpdateManifest (Join-Path $network.Installed 'update-manifest.json')).Version -eq '1.0.0' -and @(Get-ChildItem -LiteralPath (Join-Path $network.Installed '.updates') -Directory -Filter 'stage-*').Count -eq 0) 'Netzwerkfehler belaesst alte Version und entfernt unvollstaendigen Download'
     }
     finally { Remove-Item -LiteralPath Function:\Invoke-RestMethod; Remove-Item -LiteralPath Function:\Save-BupDownload }
@@ -145,7 +145,7 @@ finally {
     if ($passed) {
         . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
         $resolved = [IO.Path]::GetFullPath($sandbox)
-        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^UserProfileBackup-Update-Test-[a-f0-9]{32}$') { throw 'Unsicherer Update-Testpfad.' }
+        if (-not (Test-BupChild $resolved ([IO.Path]::GetTempPath())) -or (Split-Path -Leaf $resolved) -notmatch '^SuperPSBackup-Update-Test-[a-f0-9]{32}$') { throw 'Unsicherer Update-Testpfad.' }
         Remove-BupTree $resolved
     }
     else { Write-Output "Testdaten: $sandbox" }

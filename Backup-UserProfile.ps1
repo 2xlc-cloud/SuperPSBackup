@@ -3,7 +3,7 @@
 param(
     # Zentrale Konfiguration: vorhandenen Ordner auf lokalem/USB-Laufwerk oder UNC setzen.
     [string]$BackupRoot = '',
-    [string]$LogRoot = (Join-Path $env:LOCALAPPDATA 'UserProfileBackup\Logs'),
+    [string]$LogRoot = (Join-Path $env:LOCALAPPDATA 'SuperPSBackup\Logs'),
     [switch]$ForceSnapshot,
     [ValidateRange(1,36500)][int]$RetentionDays = 7,
     [ValidateRange(1,1200)][int]$RetentionMonths = 12,
@@ -211,7 +211,7 @@ function Invoke-UserProfileBackup {
                 if ($logDate -lt (Get-Date).Date.AddDays(1 - $LogDays)) { Remove-Item -LiteralPath $log.FullName -Force }
             }
         }
-        $mutex = New-Object Threading.Mutex($false, ('Local\UserProfileBackup-' + $identity.Sid))
+        $mutex = New-Object Threading.Mutex($false, ('Local\SuperPSBackup-' + $identity.Sid))
         try { $ownsMutex = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $ownsMutex = $true }
         if (-not $ownsMutex) { $status = 'Busy'; Write-BupLog $context INFO 'Ein Sicherungslauf ist bereits aktiv.' }
         else {

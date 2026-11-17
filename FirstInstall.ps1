@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-Erstinstallation von UserProfileBackup (Runtime) aus GitHub.
+Erstinstallation von SuperPSBackup (Runtime) aus GitHub.
 
 .DESCRIPTION
 Pruefung des Zielordners und des Systems, optionale Nachinstallation fehlender Komponenten
@@ -32,8 +32,8 @@ param(
     [switch]$DefineOnly
 )
 
-$script:BupRepository = '2xlc-cloud/UserProfileBackup'
-$script:BupMinimumVersion = '1.0.3'
+$script:BupRepository = '2xlc-cloud/SuperPSBackup'
+$script:BupMinimumVersion = '1.1.0'
 $script:BupMinimumDotNetRelease = 461808   # .NET Framework 4.7.2
 $script:BupMinimumFreeMB = 100
 
@@ -54,7 +54,7 @@ function Test-BupUrl([string]$Uri) {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
         $request = [Net.WebRequest]::Create($Uri)
         $request.Timeout = 15000
-        $request.UserAgent = 'UserProfileBackup-FirstInstall'
+        $request.UserAgent = 'SuperPSBackup-FirstInstall'
         $response = $request.GetResponse()
         $response.Close()
         return $true
@@ -211,7 +211,7 @@ function Invoke-BupFirstInstall {
     $hash = [Security.Cryptography.SHA256]::Create()
     try { $lockId = ([BitConverter]::ToString($hash.ComputeHash([Text.Encoding]::UTF8.GetBytes($root.ToUpperInvariant())))).Replace('-','') }
     finally { $hash.Dispose() }
-    $mutex = New-Object Threading.Mutex($false, ('Local\UserProfileBackup-FirstInstall-' + $lockId))
+    $mutex = New-Object Threading.Mutex($false, ('Local\SuperPSBackup-FirstInstall-' + $lockId))
     $ownsMutex = $false; $stage = $null
     $createdFiles = New-Object 'System.Collections.Generic.List[string]'
     $installed = $false
@@ -254,8 +254,8 @@ function Invoke-BupFirstInstall {
         # 4. Download und Installation
         [Net.ServicePointManager]::SecurityProtocol = $oldTls -bor [Net.SecurityProtocolType]::Tls12
         $runtimeNames = @('Backup-UserProfile.ps1','Install-BackupTask.ps1','Restore-UserProfile.ps1','Start-BackupGUI.ps1','Update-UserProfileBackup.ps1')
-        $headers = @{ 'User-Agent' = 'UserProfileBackup-FirstInstall' }
-        Write-Host 'Lade UserProfileBackup von GitHub ...'
+        $headers = @{ 'User-Agent' = 'SuperPSBackup-FirstInstall' }
+        Write-Host 'Lade SuperPSBackup von GitHub ...'
         $commit = Invoke-RestMethod -Uri "https://api.github.com/repos/$script:BupRepository/commits/main" -Headers $headers -TimeoutSec 30 -ErrorAction Stop
         if ($commit.sha -notmatch '^[a-fA-F0-9]{40}$') { throw 'Ungueltige GitHub-Commit-ID.' }
         $rawRoot = "https://raw.githubusercontent.com/$script:BupRepository/" + $commit.sha
@@ -289,19 +289,19 @@ function Invoke-BupFirstInstall {
         $guiCommand = "& '" + (Join-Path $root 'Start-BackupGUI.ps1').Replace("'","''") + "'"
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($guiCommand))
         $arguments = "-NoLogo -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded"
-        $shortcutPath = Join-Path $root 'Benutzerprofil-Backup.lnk'
+        $shortcutPath = Join-Path $root 'SuperPSBackup.lnk'
         if (Test-Path -LiteralPath $shortcutPath) { throw 'Startverknuepfung existiert unerwartet bereits.' }
         $createdFiles.Add($shortcutPath)
         $shell = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($shortcutPath)
         $shortcut.TargetPath = $exe; $shortcut.Arguments = $arguments
         $shortcut.WorkingDirectory = $root; $shortcut.WindowStyle = 7
-        $shortcut.Description = 'Benutzerprofil-Backup starten'
+        $shortcut.Description = 'SuperPSBackup starten'
         $shortcut.Save()
         if (-not (Test-Path -LiteralPath $shortcutPath -PathType Leaf)) { throw 'Startverknuepfung konnte nicht angelegt werden.' }
         $installed = $true
         Write-Host ("Installation erfolgreich. Version: " + $manifest.Version)
-        Write-Host 'Start kuenftig per Benutzerprofil-Backup.lnk. Sicherungsziel in der GUI einrichten.'
+        Write-Host 'Start kuenftig per SuperPSBackup.lnk. Sicherungsziel in der GUI einrichten.'
         if (-not $NoStart) {
             try { Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden }
             catch { Write-Warning "Programm wurde installiert, konnte aber nicht gestartet werden: $_" }

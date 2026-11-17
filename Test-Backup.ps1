@@ -4,7 +4,7 @@ param([switch]$KeepTestData)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Backup-UserProfile.ps1')
 . (Join-Path $PSScriptRoot 'Restore-UserProfile.ps1') -SnapshotPath unused -DestinationPath unused
-$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('UserProfileBackup-Test-' + [guid]::NewGuid().ToString('N'))
+$sandbox = Join-Path ([IO.Path]::GetTempPath()) ('SuperPSBackup-Test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $sandbox
 $script:checks = 0
 function Assert-Test([bool]$Condition, [string]$Message) {
@@ -214,7 +214,7 @@ try {
     $scheduler = New-Object -ComObject 'Schedule.Service'
     $scheduler.Connect()
     $taskFolder = $scheduler.GetFolder('\')
-    $null = $taskFolder.RegisterTask('UserProfileBackup-ValidationOnly', $xmlText, 1, $null, $null, 3, $null)
+    $null = $taskFolder.RegisterTask('SuperPSBackup-ValidationOnly', $xmlText, 1, $null, $null, 3, $null)
     Assert-Test $true 'Aufgaben-XML durch Windows-Aufgabenplanung validiert (ohne Registrierung)'
     $sources = Get-BupSources
     Assert-Test ($sources.Count -eq 7 -and $sources.Downloads -and $sources.Documents) 'Sieben persoenliche Ordner aus Windows ermittelt'
@@ -226,7 +226,7 @@ finally {
         # Ausschliesslich den zuvor erzeugten, absoluten Testordner unter TEMP loeschen.
         $resolved = [IO.Path]::GetFullPath($sandbox)
         $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
-        if (-not (Test-BupChild $resolved $tempRoot) -or (Split-Path -Leaf $resolved) -notlike 'UserProfileBackup-Test-*') { throw 'Unsicherer Testbereinigungspfad.' }
+        if (-not (Test-BupChild $resolved $tempRoot) -or (Split-Path -Leaf $resolved) -notlike 'SuperPSBackup-Test-*') { throw 'Unsicherer Testbereinigungspfad.' }
         Remove-BupTree $resolved
     }
     else { Write-Output "Testdaten: $sandbox" }
