@@ -1,6 +1,6 @@
 {
     "Format":  1,
-    "Version":  "1.0.2",
+    "Version":  "1.0.3",
     "Files":  [
                   {
                       "Name":  "Backup-UserProfile.ps1",
@@ -24,8 +24,8 @@
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
-                      "Length":  18595,
-                      "SHA256":  "C5BC0BA6379ECE6DDECAC8BA726F5015057733007315E18AA327C2DC353D53F3"
+                      "Length":  19337,
+                      "SHA256":  "42B0D22AFE126E3481943C0C181CDAD850EA23CB1C0FD1468EF4043C9EAD874D"
                   },
                   {
                       "Name":  "New-UpdateManifest.ps1",
@@ -51,6 +51,11 @@
                       "Name":  "Test-OnlineUpdate.ps1",
                       "Length":  7708,
                       "SHA256":  "1D8D0BE478C878F04F22C5A4D764CBA7F90AC4466ABFF4C15F9F2D974EAB1063"
+                  },
+                  {
+                      "Name":  "Test-FirstInstall.ps1",
+                      "Length":  10648,
+                      "SHA256":  "06EB72013FC06B9768178869E24A1D03024F562D9929F10C51F9DB90B5552408"
                   },
                   {
                       "Name":  "README.md",

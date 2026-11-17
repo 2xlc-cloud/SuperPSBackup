@@ -17,7 +17,19 @@ if ([string]::IsNullOrWhiteSpace($InstallRoot)) { $InstallRoot = $PSScriptRoot }
 function Get-BupUpdateFiles {
     @('Backup-UserProfile.ps1','Install-BackupTask.ps1','Restore-UserProfile.ps1',
       'Start-BackupGUI.ps1','Update-UserProfileBackup.ps1','New-UpdateManifest.ps1',
-      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','README.md')
+      'Test-Backup.ps1','Test-GUI.ps1','Test-Update.ps1','Test-OnlineUpdate.ps1','Test-FirstInstall.ps1','README.md')
+}
+
+function Get-BupRuntimeFiles {
+    @('Backup-UserProfile.ps1','Install-BackupTask.ps1','Restore-UserProfile.ps1',
+      'Start-BackupGUI.ps1','Update-UserProfileBackup.ps1')
+}
+
+function ConvertTo-BupRuntimeManifest($Manifest) {
+    $null = Test-BupUpdateManifest $Manifest
+    $runtimeNames = @(Get-BupRuntimeFiles)
+    $runtime = [pscustomobject]@{ Format = 1; Version = $Manifest.Version; InstallationType = 'Runtime'; Files = @($Manifest.Files | Where-Object { $_.Name -cin $runtimeNames }) }
+    return (Test-BupUpdateManifest $runtime)
 }
 
 function Assert-BupUpdateDirectory([string]$Path) {
@@ -97,6 +109,9 @@ function Get-BupUpdateInfo([string]$RepositoryUrl, [string]$Ref, [string]$Instal
     $rawRoot = "https://raw.githubusercontent.com/$($repository.Owner)/$($repository.Name)/$($commit.sha)"
     $manifest = Test-BupUpdateManifest (Invoke-RestMethod -Uri "$rawRoot/update-manifest.json" -Headers @{ 'User-Agent' = 'UserProfileBackup-Updater' } -TimeoutSec 30 -ErrorAction Stop)
     $installed = Read-BupUpdateManifest (Join-Path $InstallRoot 'update-manifest.json')
+    if ($installed.PSObject.Properties['InstallationType'] -and $installed.InstallationType -eq 'Runtime') {
+        $manifest = ConvertTo-BupRuntimeManifest $manifest
+    }
     if ([version]$manifest.Version -lt [version]$installed.Version) { throw "Aeltere Remote-Version $($manifest.Version) wird nicht automatisch installiert." }
     $different = [version]$manifest.Version -gt [version]$installed.Version
     foreach ($entry in $manifest.Files) {
