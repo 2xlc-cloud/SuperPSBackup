@@ -86,6 +86,37 @@ erhalten. Eine verkuerzte Frist entfernt beim Speichern noch keine Backups;
 die Bereinigung erfolgt erst nach einer erfolgreichen Sicherung. Monats- und
 Jahresstaende werden durch weitere manuelle Tagesstaende nicht ueberschrieben.
 
+## Erstinstallation (FirstInstall.ps1)
+
+`FirstInstall.ps1` installiert die fuenf Laufzeit-Skripte aus GitHub in einen **leeren Ordner**, in dem
+nur diese Datei liegt (Release-Asset von [v1.0.3](https://github.com/2xlc-cloud/UserProfileBackup/releases/latest)).
+Es werden keine Test- oder Entwicklungsdateien geladen, vorhandene Dateien nie ueberschrieben.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\FirstInstall.ps1
+# Nur das System pruefen, nichts installieren:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\FirstInstall.ps1 -CheckOnly
+# Fehlende Komponenten (Git) ohne Rueckfrage per winget nachinstallieren:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\FirstInstall.ps1 -InstallMissing
+```
+
+Ablauf: 1. Zielordner pruefen (erst dann wird irgendetwas installiert), 2. Systemcheck, 3. fehlende Komponenten
+nachinstallieren, 4. Download mit SHA-256-Pruefung, 5. Startverknuepfung `Benutzerprofil-Backup.lnk`.
+
+| Pruefpunkt | Art | Bei Fehler |
+|---|---|---|
+| Windows 10 oder neuer | Pflicht | Abbruch |
+| Windows PowerShell 5.1 (`powershell.exe`) | Pflicht | Abbruch |
+| .NET Framework 4.7.2 oder neuer | Pflicht | Abbruch (manuell nachinstallieren) |
+| Windows Forms ladbar | Pflicht | Abbruch |
+| Zielordner beschreibbar, mind. 100 MB frei | Pflicht | Abbruch |
+| Verbindung zu `api.github.com` und `raw.githubusercontent.com` | Pflicht | Abbruch |
+| Git | empfohlen | Rueckfrage (J/N) oder `-InstallMissing`; Installation per `winget install --id Git.Git` |
+
+Git wird fuer den Betrieb und das Selbstupdate nicht benoetigt, nur zum Klonen oder Weiterentwickeln des Repositorys.
+Scheitert die Git-Installation (kein winget, Fehlercode), wird gewarnt und das Programm trotzdem installiert.
+Wurde die Datei im Browser geladen und blockiert Windows sie, vorher `Unblock-File .\FirstInstall.ps1` ausfuehren
+oder den Aufruf mit `-ExecutionPolicy Bypass` wie oben verwenden.
 ## Einrichtung
 
 1. Diesen Projektordner dauerhaft an seinem Platz lassen. Die Aufgabe verweist auf
