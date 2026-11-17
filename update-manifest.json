@@ -1,0 +1,61 @@
+{
+    "Format":  1,
+    "Version":  "1.0.1",
+    "Files":  [
+                  {
+                      "Name":  "Backup-UserProfile.ps1",
+                      "Length":  24886,
+                      "SHA256":  "79D2C79DDC0FDB10CD3A3DDC0042597E3720D27B6ED87A474B725FD97F9656FB"
+                  },
+                  {
+                      "Name":  "Install-BackupTask.ps1",
+                      "Length":  4353,
+                      "SHA256":  "F85AFF3DC3A17EA7C6D0CC13D74D5B788CF52DB46CBE841916470C29B6C41C65"
+                  },
+                  {
+                      "Name":  "Restore-UserProfile.ps1",
+                      "Length":  5734,
+                      "SHA256":  "E2540B985B5A635D2C4569ACB748B88AEC414B7E6F265CAD22D3EF4C1F740A47"
+                  },
+                  {
+                      "Name":  "Start-BackupGUI.ps1",
+                      "Length":  38057,
+                      "SHA256":  "BE700294F33DD96F1C62CBC68248CF4961809739F7D26AB55D6F7306B9A45728"
+                  },
+                  {
+                      "Name":  "Update-UserProfileBackup.ps1",
+                      "Length":  18595,
+                      "SHA256":  "C5BC0BA6379ECE6DDECAC8BA726F5015057733007315E18AA327C2DC353D53F3"
+                  },
+                  {
+                      "Name":  "New-UpdateManifest.ps1",
+                      "Length":  1068,
+                      "SHA256":  "474A9DEE3754CB45AC1E0EE9CB4F5D00736267807286B993BAF6DFF635F25B55"
+                  },
+                  {
+                      "Name":  "Test-Backup.ps1",
+                      "Length":  20797,
+                      "SHA256":  "CEA5CDE4EF1886E11BFD2C4F6B3A3D746E70D77B7B566AAC12B24C64B311221C"
+                  },
+                  {
+                      "Name":  "Test-GUI.ps1",
+                      "Length":  18101,
+                      "SHA256":  "21103296ADBB16DD543C3867443AFAA6ACD80A82B2276D5699166AA7DAC5D01F"
+                  },
+                  {
+                      "Name":  "Test-Update.ps1",
+                      "Length":  12496,
+                      "SHA256":  "78217D4F2AC5E1929288DCC6215B212F9652B1F63B855672BDB488E1E6411528"
+                  },
+                  {
+                      "Name":  "Test-OnlineUpdate.ps1",
+                      "Length":  7708,
+                      "SHA256":  "1D8D0BE478C878F04F22C5A4D764CBA7F90AC4466ABFF4C15F9F2D974EAB1063"
+                  },
+                  {
+                      "Name":  "README.md",
+                      "Length":  26503,
+                      "SHA256":  "3EE5FAB570E570978FD69B7B6187085A3A988F453A9B415C35A51C5D9BAF199A"
+                  }
+              ]
+}

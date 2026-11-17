@@ -1,0 +1,10 @@
+# Lokale Installationsdaten und Testdarstellungen nicht veroeffentlichen.
+*.lnk
+GUI-Preview*.png
+.program.lock
+.updates/
+gui-settings.json
+update-source.json
+*.log
+Logs/
+Backups/
