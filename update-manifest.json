@@ -1,6 +1,6 @@
 {
     "Format":  1,
-    "Version":  "1.0.1",
+    "Version":  "1.0.2",
     "Files":  [
                   {
                       "Name":  "Backup-UserProfile.ps1",
@@ -19,8 +19,8 @@
                   },
                   {
                       "Name":  "Start-BackupGUI.ps1",
-                      "Length":  38057,
-                      "SHA256":  "BE700294F33DD96F1C62CBC68248CF4961809739F7D26AB55D6F7306B9A45728"
+                      "Length":  38341,
+                      "SHA256":  "23FDE3C4E3320CF8054A9702ABEB01DC9FC845D2E1C0E008D70E69EDF36310FC"
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
@@ -39,8 +39,8 @@
                   },
                   {
                       "Name":  "Test-GUI.ps1",
-                      "Length":  18101,
-                      "SHA256":  "21103296ADBB16DD543C3867443AFAA6ACD80A82B2276D5699166AA7DAC5D01F"
+                      "Length":  19390,
+                      "SHA256":  "85323B20F00DC5F2D77FEC90D70F18250EA431D6873C2F1480F90E5B93E6755F"
                   },
                   {
                       "Name":  "Test-Update.ps1",
@@ -55,7 +55,7 @@
                   {
                       "Name":  "README.md",
                       "Length":  26503,
-                      "SHA256":  "3EE5FAB570E570978FD69B7B6187085A3A988F453A9B415C35A51C5D9BAF199A"
+                      "SHA256":  "645A50BE820EC22BEBFA3BEF30732FE6AB212B2F00146EBA2CBEDBF4116724FC"
                   }
               ]
 }

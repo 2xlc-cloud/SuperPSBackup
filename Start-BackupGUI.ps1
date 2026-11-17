@@ -307,9 +307,17 @@ function Start-BupGuiWork($Window, [string]$Action, [hashtable]$Data) {
     $Window.Timer.Start()
 }
 
+function Confirm-BupProgramUpdate($Window, $Info) {
+    $message = "Version $($Info.InstalledVersion) -> $($Info.Version)`r`nQuelle: $($Info.RepositoryUrl)`r`nCommit: $($Info.Commit)`r`n`r`nJetzt installieren? Die GUI wird geschlossen und danach neu gestartet. Einstellungen und Sicherungsdaten bleiben erhalten."
+    return ([Windows.Forms.MessageBox]::Show($Window.Form, $message, 'Programmupdate verfuegbar', 'YesNo', 'Question') -eq 'Yes')
+}
+
 function Complete-BupGuiWork($Window) {
     if ($null -eq $Window.Worker -or -not $Window.Worker.Handle.IsCompleted) { return }
     $job = $Window.Worker
+    # Ein modaler Dialog verarbeitet weiter Fensternachrichten. Den Timer vor
+    # der Rueckfrage stoppen, damit derselbe fertige Job nur einmal beendet wird.
+    $Window.Timer.Stop()
     $acceptedUpdate = $null
     try {
         $results = @($job.PowerShell.EndInvoke($job.Handle))
@@ -323,8 +331,7 @@ function Complete-BupGuiWork($Window) {
         else { $Window.Controls.Output.AppendText(($results | Format-List | Out-String)) }
         if ($job.Action -eq 'UpdateCheck' -and $results.Count -eq 1 -and $results[0].UpdateAvailable) {
             $info = $results[0]
-            $message = "Version $($info.InstalledVersion) -> $($info.Version)`r`nQuelle: $($info.RepositoryUrl)`r`nCommit: $($info.Commit)`r`n`r`nJetzt installieren? Die GUI wird geschlossen und danach neu gestartet. Einstellungen und Sicherungsdaten bleiben erhalten."
-            if ([Windows.Forms.MessageBox]::Show($Window.Form, $message, 'Programmupdate verfuegbar', 'YesNo', 'Question') -eq 'Yes') { $acceptedUpdate = $info }
+            if (Confirm-BupProgramUpdate $Window $info) { $acceptedUpdate = $info }
         }
         foreach ($warning in $job.PowerShell.Streams.Warning) { $Window.Controls.Output.AppendText("Hinweis: $warning`r`n") }
         $Window.Controls.Status.Text = 'Vorgang abgeschlossen.'

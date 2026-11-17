@@ -328,7 +328,7 @@ GUI-Timer und der Schutz vor Schliessen waehrend eines Vorgangs geprueft. Es ble
 kein manuell zu schliessendes Testfenster offen. Die Tests installieren oder
 veraendern keine produktive Aufgabe.
 
-Pruefstand vom 17.11.2026: **103 Backup-Pruefungen**, **48 GUI-Pruefungen** und
+Pruefstand vom 17.11.2026: **103 Backup-Pruefungen**, **49 GUI-Pruefungen** und
 **35 Update-Pruefungen**
 erfolgreich unter Windows PowerShell **5.1.26100.9818**. PowerShell **7.7.0** ist
 ebenfalls mit dem automatisierten Testsatz geprueft (GUI ohne optionale Vorschau).

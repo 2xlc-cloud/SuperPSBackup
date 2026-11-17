@@ -39,6 +39,23 @@ try {
     $launchTokens = $null; $launchErrors = $null
     $null = [Management.Automation.Language.Parser]::ParseInput($launchText, [ref]$launchTokens, [ref]$launchErrors)
     Assert-Gui ($launchErrors.Count -eq 0 -and $launchText.Contains("O''Brien") -and $launchText.Contains('-ExpectedCommit') -and $launchText.Contains("-WaitForProcessId $PID") -and $launch.Arguments.Contains('-WindowStyle Hidden')) 'Sicherer versteckter Updaterstart mit Commitbindung und Warten auf GUI-Ende'
+    $script:realUpdateConfirmation = ${function:Confirm-BupProgramUpdate}
+    $script:confirmationCalls = 0
+    $script:timerStoppedBeforeConfirmation = $false
+    function Confirm-BupProgramUpdate($Window, $Info) {
+        $script:confirmationCalls++
+        $script:timerStoppedBeforeConfirmation = -not $Window.Timer.Enabled
+        return $false
+    }
+    $completedUpdateCheck = [PowerShell]::Create()
+    $null = $completedUpdateCheck.AddScript({ [pscustomobject]@{ UpdateAvailable = $true; Version = '1.0.2'; InstalledVersion = '1.0.1'; RepositoryUrl = 'https://github.com/2xlc-cloud/UserProfileBackup'; Commit = ('a' * 40) } })
+    $completedHandle = $completedUpdateCheck.BeginInvoke()
+    while (-not $completedHandle.IsCompleted) { Start-Sleep -Milliseconds 10 }
+    $gui.Worker = [pscustomobject]@{ PowerShell = $completedUpdateCheck; Handle = $completedHandle; Action = 'UpdateCheck' }
+    $gui.Timer.Start()
+    try { Complete-BupGuiWork $gui }
+    finally { Set-Item -LiteralPath Function:\Confirm-BupProgramUpdate -Value $script:realUpdateConfirmation }
+    Assert-Gui ($script:confirmationCalls -eq 1 -and $script:timerStoppedBeforeConfirmation -and $null -eq $gui.Worker) 'Updatebestaetigung einmalig bei gestopptem Timer; Ablehnen beendet den Vorgang ohne Installation'
     Assert-Gui ($gui.Form.BackColor.R -lt 50 -and $gui.Form.ForeColor.R -gt 200 -and $gui.Controls.Root.BackColor.R -lt 50 -and $gui.Controls.Output.BackColor.R -lt 50) 'Darkmode standardmaessig fuer Fenster, Eingaben und Ergebnisse aktiv'
     foreach ($scale in @(1.0, 1.25, 1.5, 2.0)) {
         $layout = New-BupGuiWindow (Join-Path $testRoot 'layout-settings.json')
