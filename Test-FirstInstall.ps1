@@ -195,7 +195,7 @@ try {
         . $installerSource -DefineOnly   # echte Systemabfragen wiederherstellen
         $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $realRoot = New-FirstInstallFolder 'realcheck'
-        $real = @(Get-BupSystemCheck -Root $realRoot)
+        $real = Get-BupSystemCheck -Root $realRoot
         $failedReal = @($real | Where-Object { $_.Required -and -not $_.Ok })
         Assert-FirstInstall ($real.Count -ge 8 -and $failedReal.Count -eq 0) ('Echter Systemcheck dieses Rechners besteht alle Pflichtpunkte (' + (($real | ForEach-Object { "$($_.Id)=$($_.Ok)" }) -join ', ') + ')')
         Remove-Item -LiteralPath (Join-Path $realRoot 'FirstInstall.ps1')

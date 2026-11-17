@@ -120,3 +120,25 @@ Beim Live-Test gefundene und behobene Fehler:
 | `Test-Backup.ps1` | 104 / 104 |
 | `FirstInstall.bat` aus dem Release-Download, danach `-CheckOnly` | Version 1.0.3, kein Update offen |
 | `Test-GUI.ps1` | Bricht bei der 200-Prozent-Pruefung ab (Arbeitsbereich 1476x781 zu klein fuer den Kopfbereich); 100/125/150 Prozent bestehen. `Start-BackupGUI.ps1` ist unveraendert. |
+## Nachtrag: FirstInstall.ps1 statt FirstInstall.bat (2026-11-17)
+
+`FirstInstall.bat` wurde durch `FirstInstall.ps1` ersetzt (Release-Asset von `v1.0.3`, Commit `3826ae2`).
+Neu: Zielordner-Pruefung vor allem anderen, Systemcheck (Windows 10+, Windows PowerShell 5.1, .NET Framework 4.7.2+,
+Windows Forms, Zielordner beschreibbar, 100 MB frei, Verbindung zu GitHub), Nachinstallation von Git per winget
+(`-InstallMissing` oder Rueckfrage J/N), `-CheckOnly`, `-SkipOptional`. Git ist empfohlen, nicht Pflicht; Fehler dabei sind nur eine Warnung.
+
+Alle Systemzugriffe sind einzelne Funktionen und im Test ersetzbar. Dadurch pruefen die Tests jeden Zweig ohne Systemveraenderung.
+
+| Test | Ergebnis |
+|---|---|
+| `Test-FirstInstall.ps1` offline (Pflichtpunkte einzeln, Git per winget, Rueckfragen, winget fehlt/Fehlercode, `-CheckOnly`, Pruefsumme, Netzwerk) | 38 / 38 |
+| `Test-FirstInstall.ps1 -Online` (echter Systemcheck, echte Installation von GitHub in `[x]`-Ordner, GUI, Backup, Restore, Selbstupdate, Rollback) | 48 / 48 |
+| `Test-OnlineUpdate.ps1` | 10 / 10 |
+| `Test-Update.ps1` | 35 / 35 |
+| `Test-Backup.ps1` | 105 / 105 |
+| Release-Asset heruntergeladen (Hash identisch) und in leerem Ordner ausgefuehrt | Version 1.0.3, Exit 0 |
+| `winget show --id Git.Git -e --source winget` | Paket gefunden (winget 1.29) |
+
+Nicht real getestet: die tatsaechliche Git-Installation per winget (Git ist auf dem Testrechner bereits vorhanden, es wurde nichts
+deinstalliert). Der winget-Aufruf ist durch Mocks (Argumente, Fehlercodes, fehlendes winget) abgedeckt.
+`Test-GUI.ps1` verhaelt sich unveraendert (200-Prozent-Pruefung scheitert am kleinen Arbeitsbereich dieses Bildschirms).
