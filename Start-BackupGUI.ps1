@@ -234,16 +234,200 @@ function New-BupSettingsDialog($Window) {
     return $dialog
 }
 
+function Get-BupTaskNames {
+    $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    @{ Backup = 'UserProfileBackup-' + $sid; Update = 'UserProfileBackupUpdate-' + $sid }
+}
+
+function Get-BupUpdateTaskSettingsPath([string]$SettingsPath) {
+    Join-Path (Split-Path -Parent $SettingsPath) 'update-task.json'
+}
+
+function Read-BupUpdateTaskSettings([string]$SettingsPath) {
+    $settings = @{ DelayMinutes = 10; DailyAt = ''; Mode = 'CheckOnly' }
+    $path = Get-BupUpdateTaskSettingsPath $SettingsPath
+    if (-not (Test-Path -LiteralPath $path)) { return $settings }
+    try {
+        $saved = Get-Content -LiteralPath $path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        if ($saved.PSObject.Properties['DelayMinutes'] -and [int]$saved.DelayMinutes -ge 0 -and [int]$saved.DelayMinutes -le 60) { $settings.DelayMinutes = [int]$saved.DelayMinutes }
+        if ($saved.PSObject.Properties['Mode'] -and [string]$saved.Mode -in @('CheckOnly', 'Install')) { $settings.Mode = [string]$saved.Mode }
+        if ($saved.PSObject.Properties['DailyAt'] -and $saved.DailyAt) {
+            $null = [datetime]::ParseExact([string]$saved.DailyAt, 'HH:mm', [Globalization.CultureInfo]::InvariantCulture)
+            $settings.DailyAt = [string]$saved.DailyAt
+        }
+    }
+    catch { }   # Beschaedigte Datei: Standardwerte verwenden
+    return $settings
+}
+
+function Test-BupTaskExists($Window, [string]$Kind) {
+    try { return ($null -ne (Get-ScheduledTask -TaskName $Window.TaskNames[$Kind] -ErrorAction SilentlyContinue)) }
+    catch { return $false }
+}
+
+function Update-BupTaskDialogState($Dialog) {
+    $s = $Dialog.Tag
+    foreach ($control in @($s.BackupDelay, $s.BackupDaily)) { $control.Enabled = $s.BackupEnabled.Checked }
+    $s.BackupTime.Enabled = $s.BackupEnabled.Checked -and $s.BackupDaily.Checked
+    foreach ($control in @($s.UpdateUrl, $s.UpdateBranch, $s.UpdateMode, $s.UpdateDelay, $s.UpdateDaily)) { $control.Enabled = $s.UpdateEnabled.Checked }
+    $s.UpdateTime.Enabled = $s.UpdateEnabled.Checked -and $s.UpdateDaily.Checked
+}
+
+function Complete-BupTaskDialog($Dialog) {
+    $s = $Dialog.Tag; $w = $s.Window; $c = $w.Controls
+    try {
+        $logs = $c.Logs.Text.Trim()
+        if (-not [IO.Path]::IsPathRooted($logs)) { throw 'Bitte einen absoluten Protokollpfad angeben.' }
+        $updatePlan = @{ Enabled = $false; Arguments = @{} }
+        $updateSource = $null; $updateSettings = $null
+        if ($s.UpdateEnabled.Checked) {
+            . (Join-Path $w.Project 'Update-UserProfileBackup.ps1')
+            $repository = Get-BupRepository $s.UpdateUrl.Text.Trim()
+            $ref = $s.UpdateBranch.Text.Trim()
+            if ($ref -notmatch '^[A-Za-z0-9._/-]{1,100}$') { throw 'Bitte einen gueltigen Branch oder Tag fuer die Updatequelle angeben.' }
+            $daily = ''
+            if ($s.UpdateDaily.Checked) {
+                $daily = $s.UpdateTime.Text
+                $null = [datetime]::ParseExact($daily, 'HH:mm', [Globalization.CultureInfo]::InvariantCulture)
+            }
+            $mode = if ($s.UpdateMode.SelectedIndex -eq 1) { 'Install' } else { 'CheckOnly' }
+            $updatePlan = @{ Enabled = $true; Arguments = @{ UpdateTask = $true; UpdateRepositoryUrl = $repository.Url; UpdateRef = $ref; UpdateMode = $mode; DelayMinutes = [int]$s.UpdateDelay.Value; DailyAt = $daily; LogRoot = $logs } }
+            $updateSource = @{ RepositoryUrl = $repository.Url; Ref = $ref }
+            $updateSettings = @{ DelayMinutes = [int]$s.UpdateDelay.Value; DailyAt = $daily; Mode = $mode }
+        }
+        $backupPlan = @{ Enabled = $false; Arguments = @{} }
+        if ($s.BackupEnabled.Checked) {
+            $previous = @{ Delay = $c.Delay.Value; Daily = $c.Daily.Checked; Time = $c.Time.Text }
+            $c.Delay.Value = $s.BackupDelay.Value; $c.Daily.Checked = $s.BackupDaily.Checked; $c.Time.Text = $s.BackupTime.Text
+            try { $request = Get-BupGuiRequest $w }
+            catch { $c.Delay.Value = $previous.Delay; $c.Daily.Checked = $previous.Daily; $c.Time.Text = $previous.Time; throw }
+            $backupPlan = @{ Enabled = $true; Arguments = $request }
+        }
+        # Erst nach erfolgreicher Pruefung beider Aufgaben speichern.
+        if ($backupPlan.Enabled) { Save-BupGuiSettings $w.SettingsPath $backupPlan.Arguments }
+        if ($updatePlan.Enabled) {
+            Save-BupGuiSettings (Get-BupUpdateSourcePath $w.SettingsPath) $updateSource
+            Save-BupGuiSettings (Get-BupUpdateTaskSettingsPath $w.SettingsPath) $updateSettings
+        }
+        $s.Result = @{ Backup = $backupPlan; Update = $updatePlan }
+        $Dialog.DialogResult = 'OK'
+    }
+    catch { $s.ErrorLabel.Text = [string]$_ }
+}
+
+function New-BupTaskDialog($Window) {
+    $dialog = New-Object Windows.Forms.Form
+    $dialog.SuspendLayout(); $dialog.Font = $Window.Form.Font
+    $dialog.AutoScaleDimensions = New-Object Drawing.SizeF(96,96); $dialog.AutoScaleMode = 'Dpi'
+    $dialog.Text = 'Aufgaben einrichten - Backup und Update'; $dialog.ClientSize = New-Object Drawing.Size(720,676)
+    $dialog.FormBorderStyle = 'FixedDialog'; $dialog.MaximizeBox = $false; $dialog.MinimizeBox = $false
+    $dialog.StartPosition = 'CenterParent'; $dialog.ShowInTaskbar = $false
+    $s = @{ Window = $Window; Result = $null }
+    $dialog.Tag = $s
+    function Add-DialogLabel($Parent, [string]$Text, [int]$X, [int]$Y, [int]$Width, [int]$Height = 28) {
+        $label = New-Object Windows.Forms.Label
+        $label.Text = $Text; $label.SetBounds($X, $Y, $Width, $Height); $Parent.Controls.Add($label); return $label
+    }
+    function Add-DialogTime($Parent, [int]$X, [int]$Y) {
+        $box = New-Object Windows.Forms.MaskedTextBox
+        $box.Mask = '00:00'; $box.SetBounds($X, $Y, 90, 30); $Parent.Controls.Add($box); return $box
+    }
+    $null = Add-DialogLabel $dialog 'Haken = Aufgabe soll eingerichtet sein. Ohne Haken wird eine vorhandene Aufgabe entfernt. Sicherungsdateien bleiben immer erhalten.' 20 14 680 50
+
+    # --- Backup-Aufgabe
+    $backupGroup = New-Object Windows.Forms.GroupBox
+    $backupGroup.Text = 'Backup-Aufgabe'; $backupGroup.SetBounds(16, 70, 688, 190); $dialog.Controls.Add($backupGroup)
+    $s.BackupEnabled = New-Object Windows.Forms.CheckBox
+    $s.BackupEnabled.Text = 'Backup-Aufgabe einrichten'; $s.BackupEnabled.SetBounds(16, 30, 320, 30); $backupGroup.Controls.Add($s.BackupEnabled)
+    $s.BackupState = Add-DialogLabel $backupGroup '' 350 32 320
+    $null = Add-DialogLabel $backupGroup 'Start nach Anmeldung (Minuten Verzoegerung)' 34 74 400
+    $s.BackupDelay = New-Object Windows.Forms.NumericUpDown
+    $s.BackupDelay.Minimum = 0; $s.BackupDelay.Maximum = 60; $s.BackupDelay.SetBounds(450, 72, 80, 30); $backupGroup.Controls.Add($s.BackupDelay)
+    $s.BackupDaily = New-Object Windows.Forms.CheckBox
+    $s.BackupDaily.Text = 'Zusaetzlich taeglich um'; $s.BackupDaily.SetBounds(34, 112, 260, 30); $backupGroup.Controls.Add($s.BackupDaily)
+    $s.BackupTime = Add-DialogTime $backupGroup 300 112
+    $s.BackupSummary = Add-DialogLabel $backupGroup '' 34 150 640
+    $s.BackupSummary.Text = $Window.Controls.RetentionLabel.Text
+
+    # --- Update-Aufgabe
+    $updateGroup = New-Object Windows.Forms.GroupBox
+    $updateGroup.Text = 'Update-Aufgabe'; $updateGroup.SetBounds(16, 272, 688, 322); $dialog.Controls.Add($updateGroup)
+    $s.UpdateEnabled = New-Object Windows.Forms.CheckBox
+    $s.UpdateEnabled.Text = 'Update-Aufgabe einrichten'; $s.UpdateEnabled.SetBounds(16, 30, 320, 30); $updateGroup.Controls.Add($s.UpdateEnabled)
+    $s.UpdateState = Add-DialogLabel $updateGroup '' 350 32 320
+    $null = Add-DialogLabel $updateGroup 'Repository-URL' 34 74 140
+    $s.UpdateUrl = New-Object Windows.Forms.TextBox
+    $s.UpdateUrl.SetBounds(184, 72, 486, 28); $updateGroup.Controls.Add($s.UpdateUrl)
+    $null = Add-DialogLabel $updateGroup 'Branch / Tag' 34 114 140
+    $s.UpdateBranch = New-Object Windows.Forms.TextBox
+    $s.UpdateBranch.SetBounds(184, 112, 486, 28); $updateGroup.Controls.Add($s.UpdateBranch)
+    $null = Add-DialogLabel $updateGroup 'Aktion' 34 154 140
+    $s.UpdateMode = New-Object Windows.Forms.ComboBox
+    $s.UpdateMode.DropDownStyle = 'DropDownList'; $s.UpdateMode.SetBounds(184, 152, 486, 30)
+    $null = $s.UpdateMode.Items.Add('Nur pruefen und protokollieren (empfohlen)')
+    $null = $s.UpdateMode.Items.Add('Pruefen und automatisch installieren')
+    $updateGroup.Controls.Add($s.UpdateMode)
+    $null = Add-DialogLabel $updateGroup 'Start nach Anmeldung (Minuten Verzoegerung)' 34 198 400
+    $s.UpdateDelay = New-Object Windows.Forms.NumericUpDown
+    $s.UpdateDelay.Minimum = 0; $s.UpdateDelay.Maximum = 60; $s.UpdateDelay.SetBounds(450, 196, 80, 30); $updateGroup.Controls.Add($s.UpdateDelay)
+    $s.UpdateDaily = New-Object Windows.Forms.CheckBox
+    $s.UpdateDaily.Text = 'Zusaetzlich taeglich um'; $s.UpdateDaily.SetBounds(34, 236, 260, 30); $updateGroup.Controls.Add($s.UpdateDaily)
+    $s.UpdateTime = Add-DialogTime $updateGroup 300 236
+    $s.UpdateHint = Add-DialogLabel $updateGroup 'Automatisch installierte Updates fuehren Code aus der oben genannten Quelle ohne Rueckfrage aus. Protokoll: Protokollordner\update-task.log' 34 274 640 40
+
+    $s.ErrorLabel = Add-DialogLabel $dialog '' 20 600 680 30
+    $status = New-Object Windows.Forms.Button
+    $status.Text = 'Status anzeigen'; $status.SetBounds(16, 632, 190, 36); $status.DialogResult = 'Retry'; $dialog.Controls.Add($status); $s.StatusButton = $status
+    $ok = New-Object Windows.Forms.Button
+    $ok.Text = 'Uebernehmen'; $ok.SetBounds(404, 632, 150, 36); $dialog.Controls.Add($ok); $s.OkButton = $ok
+    $cancel = New-Object Windows.Forms.Button
+    $cancel.Text = 'Abbrechen'; $cancel.SetBounds(566, 632, 138, 36); $cancel.DialogResult = 'Cancel'; $dialog.Controls.Add($cancel); $s.CancelButton = $cancel
+    $ok.Add_Click({ Complete-BupTaskDialog $this.FindForm() })
+    $dialog.AcceptButton = $ok; $dialog.CancelButton = $cancel
+    foreach ($box in @($s.BackupEnabled, $s.BackupDaily, $s.UpdateEnabled, $s.UpdateDaily)) { $box.Add_CheckedChanged({ Update-BupTaskDialogState $this.FindForm() }) }
+
+    # --- Startwerte: vorhandene Aufgaben und gespeicherte Einstellungen
+    $backupExists = Test-BupTaskExists $Window 'Backup'
+    $updateExists = Test-BupTaskExists $Window 'Update'
+    $s.BackupState.Text = if ($backupExists) { 'Aktuell: eingerichtet' } else { 'Aktuell: nicht eingerichtet' }
+    $s.UpdateState.Text = if ($updateExists) { 'Aktuell: eingerichtet' } else { 'Aktuell: nicht eingerichtet' }
+    # Beim ersten Aufruf ohne jede Aufgabe ist die Backup-Aufgabe vorausgewaehlt.
+    $s.BackupEnabled.Checked = ($backupExists -or -not $updateExists)
+    $s.UpdateEnabled.Checked = $updateExists
+    $s.BackupDelay.Value = $Window.Controls.Delay.Value
+    $s.BackupDaily.Checked = $Window.Controls.Daily.Checked
+    $s.BackupTime.Text = $Window.Controls.Time.Text
+    $updateSettings = Read-BupUpdateTaskSettings $Window.SettingsPath
+    $s.UpdateUrl.Text = 'https://github.com/2xlc-cloud/UserProfileBackup'; $s.UpdateBranch.Text = 'main'
+    try {
+        $sourcePath = Get-BupUpdateSourcePath $Window.SettingsPath
+        if (Test-Path -LiteralPath $sourcePath) {
+            $source = Get-Content -LiteralPath $sourcePath -Raw | ConvertFrom-Json
+            $s.UpdateUrl.Text = [string]$source.RepositoryUrl; $s.UpdateBranch.Text = [string]$source.Ref
+        }
+    }
+    catch { $s.ErrorLabel.Text = "Updatequelle konnte nicht geladen werden: $_" }
+    $s.UpdateMode.SelectedIndex = $(if ($updateSettings.Mode -eq 'Install') { 1 } else { 0 })
+    $s.UpdateDelay.Value = $updateSettings.DelayMinutes
+    $s.UpdateTime.Text = $(if ($updateSettings.DailyAt) { $updateSettings.DailyAt } else { '03:00' })
+    $s.UpdateDaily.Checked = [bool]$updateSettings.DailyAt
+    Update-BupTaskDialogState $dialog
+    Set-BupDarkTheme $dialog
+    $s.ErrorLabel.ForeColor = [Drawing.Color]::FromArgb(255,140,140)
+    $dialog.ResumeLayout($true)
+    return $dialog
+}
 function Start-BupGuiWork($Window, [string]$Action, [hashtable]$Data) {
     if ($null -ne $Window.Worker) { throw 'Ein Vorgang laeuft bereits.' }
     $job = [PowerShell]::Create()
     # Eigener Runspace: keine blockierenden Datei-/Netzwerkzugriffe im UI-Thread.
     $null = $job.AddScript({
-        param($Project, $Action, $Data)
+        param($Project, $Action, $Data, $TaskNames)
         $ErrorActionPreference = 'Stop'
         $ProgressPreference = 'SilentlyContinue'
         $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-        $taskName = 'UserProfileBackup-' + $sid
+        # Get-ScheduledTask -TaskName <fehlt> markiert den Runspace trotz SilentlyContinue als fehlerhaft.
+        $findTask = { param([string]$Name) @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -eq $Name })[0] }
         switch ($Action) {
             'UpdateCheck' {
                 & (Join-Path $Project 'Update-UserProfileBackup.ps1') -RepositoryUrl $Data.RepositoryUrl -Ref $Data.Ref -InstallRoot $Project -CheckOnly
@@ -262,16 +446,45 @@ function Start-BupGuiWork($Window, [string]$Action, [hashtable]$Data) {
                 foreach ($key in @('RetentionDays', 'RetentionMonths', 'RetentionYears', 'LogDays')) { if ($Data.ContainsKey($key)) { $arguments[$key] = $Data[$key] } }
                 & (Join-Path $Project 'Install-BackupTask.ps1') @arguments
             }
-            'TaskStatus' {
-                $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-                if ($null -eq $task) { 'Keine Backup-Aufgabe fuer diesen Benutzer eingerichtet.'; break }
-                $info = Get-ScheduledTaskInfo -TaskName $taskName
-                [pscustomobject]@{ Aufgabe = $task.TaskName; Status = [string]$task.State; LetzterStart = $info.LastRunTime; NaechsterStart = $info.NextRunTime; LetztesErgebnis = $info.LastTaskResult }
-                foreach ($trigger in $task.Triggers) { $trigger | Select-Object @{Name='Trigger';Expression={$_.CimClass.CimClassName}}, Delay, StartBoundary, Enabled }
+            'ApplyTasks' {
+                foreach ($kind in @('Backup', 'Update')) {
+                    $plan = $Data[$kind]; $name = $TaskNames[$kind]
+                    $label = if ($kind -eq 'Backup') { 'Backup-Aufgabe' } else { 'Update-Aufgabe' }
+                    $exists = $null -ne (& $findTask $name)
+                    if ($plan.Enabled) {
+                        $arguments = $plan.Arguments
+                        & (Join-Path $Project 'Install-BackupTask.ps1') @arguments -TaskName $name
+                    }
+                    elseif ($exists) { Unregister-ScheduledTask -TaskName $name -Confirm:$false; "$label entfernt. Sicherungsdateien bleiben erhalten." }
+                    else { "$label ist nicht eingerichtet." }
+                }
             }
-            'Enable' { Enable-ScheduledTask -TaskName $taskName | Out-Null; 'Aufgabe aktiviert.' }
-            'Disable' { Disable-ScheduledTask -TaskName $taskName | Out-Null; 'Aufgabe deaktiviert. Ein bereits laufendes Backup wird fortgesetzt.' }
-            'RemoveTask' { Unregister-ScheduledTask -TaskName $taskName -Confirm:$false; 'Aufgabe entfernt. Sicherungsdateien bleiben erhalten.' }
+            'TaskStatus' {
+                $found = $false
+                foreach ($kind in @('Backup', 'Update')) {
+                    $label = if ($kind -eq 'Backup') { 'Backup-Aufgabe' } else { 'Update-Aufgabe' }
+                    $task = & $findTask $TaskNames[$kind]
+                    if ($null -eq $task) { "$label`: nicht eingerichtet."; continue }
+                    $found = $true
+                    $info = Get-ScheduledTaskInfo -TaskName $TaskNames[$kind]
+                    [pscustomobject]@{ Aufgabe = $task.TaskName; Status = [string]$task.State; LetzterStart = $info.LastRunTime; NaechsterStart = $info.NextRunTime; LetztesErgebnis = $info.LastTaskResult }
+                    foreach ($trigger in $task.Triggers) { $trigger | Select-Object @{Name='Trigger';Expression={$_.CimClass.CimClassName}}, Delay, StartBoundary, Enabled }
+                }
+                if (-not $found) { 'Keine Aufgabe fuer diesen Benutzer eingerichtet.' }
+            }
+            'Enable' {
+                $names = @($TaskNames.Backup, $TaskNames.Update | Where-Object { & $findTask $_ })
+                if (-not $names.Count) { 'Keine Aufgabe eingerichtet.'; break }
+                foreach ($name in $names) { Enable-ScheduledTask -TaskName $name | Out-Null }
+                "Aktiviert: $($names -join ', ')"
+            }
+            'Disable' {
+                $names = @($TaskNames.Backup, $TaskNames.Update | Where-Object { & $findTask $_ })
+                if (-not $names.Count) { 'Keine Aufgabe eingerichtet.'; break }
+                foreach ($name in $names) { Disable-ScheduledTask -TaskName $name | Out-Null }
+                "Deaktiviert: $($names -join ', '). Ein bereits laufendes Backup wird fortgesetzt."
+            }
+            'RemoveTask' { Unregister-ScheduledTask -TaskName $TaskNames.Backup -Confirm:$false; 'Backup-Aufgabe entfernt. Sicherungsdateien bleiben erhalten.' }
             'Snapshots' {
                 . (Join-Path $Project 'Backup-UserProfile.ps1')
                 $userRoot = Join-Path $Data.BackupRoot (Get-BupIdentity).Folder
@@ -295,7 +508,7 @@ function Start-BupGuiWork($Window, [string]$Action, [hashtable]$Data) {
             }
             default { throw "Unbekannter Vorgang: $Action" }
         }
-    }).AddArgument($Window.Project).AddArgument($Action).AddArgument($Data)
+    }).AddArgument($Window.Project).AddArgument($Action).AddArgument($Data).AddArgument($Window.TaskNames)
     try { $handle = $job.BeginInvoke() }
     catch { $job.Dispose(); throw }
     $Window.LastError = $null
@@ -370,7 +583,7 @@ function New-BupGuiWindow([string]$ConfigurationPath) {
     $form.MinimumSize = $form.Size
     $form.StartPosition = 'CenterScreen'
     $form.BackColor = [Drawing.Color]::FromArgb(245, 247, 250)
-    $state = [pscustomobject]@{ Form = $form; Project = $PSScriptRoot; SettingsPath = $ConfigurationPath; Controls = @{}; Navigation = (New-Object 'System.Collections.Generic.List[object]'); Retention = @{ RetentionDays = 7; RetentionMonths = 12; RetentionYears = 5; LogDays = 30 }; Buttons = (New-Object 'System.Collections.Generic.List[object]'); Worker = $null; Timer = (New-Object Windows.Forms.Timer); LastError = $null }
+    $state = [pscustomobject]@{ Form = $form; Project = $PSScriptRoot; SettingsPath = $ConfigurationPath; Controls = @{}; Navigation = (New-Object 'System.Collections.Generic.List[object]'); Retention = @{ RetentionDays = 7; RetentionMonths = 12; RetentionYears = 5; LogDays = 30 }; Buttons = (New-Object 'System.Collections.Generic.List[object]'); Worker = $null; Timer = (New-Object Windows.Forms.Timer); LastError = $null; TaskNames = (Get-BupTaskNames) }
     $form.Tag = $state
 
     function Add-Label($Parent, [string]$Text, [int]$X, [int]$Y, [int]$Width = 750, [int]$Height = 28) {
@@ -431,7 +644,7 @@ function New-BupGuiWindow([string]$ConfigurationPath) {
     }
     $tabs.Add_SelectedIndexChanged({ Update-BupNavigation $this.FindForm().Tag })
     $null = Add-Label $pages.Install '1. Vorhandenes Sicherungsziel auswaehlen (lokal, USB oder UNC).' 18 22
-    $null = Add-Label $pages.Install '2. Unter Taskplanung die gewuenschten Startzeiten einstellen.' 18 58
+    $null = Add-Label $pages.Install '2. Unter Taskplanung Startzeiten einstellen (Backup- und Update-Aufgabe).' 18 58
     $null = Add-Label $pages.Install '3. Einstellungen speichern und die Aufgabe fuer diesen Benutzer einrichten.' 18 94
     $null = Add-Button $pages.Install 'Einstellungen speichern' 18 148 225 'Save'
     $null = Add-Button $pages.Install 'Installieren / aktualisieren' 255 148 260 'Install'
@@ -462,6 +675,7 @@ function New-BupGuiWindow([string]$ConfigurationPath) {
     $null = Add-Button $pages.Taskplanung 'Aktivieren' 382 150 150 'Enable'
     $null = Add-Button $pages.Taskplanung 'Deaktivieren' 544 150 150 'Disable'
     $null = Add-Button $pages.Taskplanung 'Aufgabe entfernen' 18 200 190 'RemoveTask'
+    $null = Add-Button $pages.Taskplanung 'Aufgaben einrichten ...' 220 200 300 'Tasks'
 
     $state.Controls.Snapshots = New-Object Windows.Forms.ComboBox
     $state.Controls.Snapshots.DropDownStyle = 'DropDownList'; $state.Controls.Snapshots.DisplayMember = 'Label'
@@ -555,6 +769,15 @@ function Invoke-BupGuiClick($Window, [string]$Action) {
                 }
                 finally { $dialog.Dispose() }
             }
+            'Tasks' {
+                $dialog = New-BupTaskDialog $Window
+                try {
+                    $answer = $dialog.ShowDialog($Window.Form)
+                    if ($answer -eq 'OK') { Start-BupGuiWork $Window ApplyTasks $dialog.Tag.Result }
+                    elseif ($answer -eq 'Retry') { Start-BupGuiWork $Window TaskStatus @{} }
+                }
+                finally { $dialog.Dispose() }
+            }
             'Settings' {
                 $dialog = New-BupSettingsDialog $Window
                 try { $null = $dialog.ShowDialog($Window.Form) } finally { $dialog.Dispose() }
@@ -583,7 +806,7 @@ function Invoke-BupGuiClick($Window, [string]$Action) {
                 Start-Process -FilePath explorer.exe -ArgumentList ('"' + $path + '"')
             }
             'RemoveTask' {
-                if ([Windows.Forms.MessageBox]::Show($Window.Form, 'Backup-Aufgabe fuer diesen Benutzer entfernen? Die Sicherungsdateien bleiben erhalten.', 'Aufgabe entfernen', 'YesNo', 'Question') -eq 'Yes') { Start-BupGuiWork $Window RemoveTask @{} }
+                if ([Windows.Forms.MessageBox]::Show($Window.Form, 'Backup-Aufgabe fuer diesen Benutzer entfernen? Die Sicherungsdateien bleiben erhalten. (Die Update-Aufgabe wird unter Aufgaben einrichten verwaltet.)', 'Aufgabe entfernen', 'YesNo', 'Question') -eq 'Yes') { Start-BupGuiWork $Window RemoveTask @{} }
             }
             default { Start-BupGuiWork $Window $Action @{} }
         }

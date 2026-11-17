@@ -9,7 +9,7 @@ Hilfsdienste erforderlich. PowerShell 7 ist ebenfalls getestet.
 | Datei | Zweck |
 |---|---|
 | `Backup-UserProfile.ps1` | Sicherung, Versionierung, Aufbewahrung, Protokolle |
-| `Install-BackupTask.ps1` | Anmeldeaufgabe fuer den aktuellen Benutzer |
+| `Install-BackupTask.ps1` | Anmeldeaufgabe fuer den aktuellen Benutzer (Backup-Aufgabe, mit `-UpdateTask` die Update-Aufgabe) |
 | `Restore-UserProfile.ps1` | Wiederherstellung mit Inhaltspruefung und Ueberschreibschutz |
 | `Test-Backup.ps1` | Automatisierte Tests ohne Testframework |
 | `Start-BackupGUI.ps1` | Grafische Oberflaeche fuer Install, Backup, Taskplanung und Restore |
@@ -18,6 +18,7 @@ Hilfsdienste erforderlich. PowerShell 7 ist ebenfalls getestet.
 | `New-UpdateManifest.ps1` | Version und Dateipruefsummen fuer eine Veroeffentlichung erzeugen |
 | `update-manifest.json` | Versionsstand und erlaubte Programmdateien mit SHA-256 |
 | `Test-Update.ps1` | Isolierte Tests von Download, Austausch, Sperren und Rollback |
+| `Test-TaskDialog.ps1` | Tests des Dialogs "Aufgaben einrichten" und beider Aufgaben im Windows-Aufgabenplaner (`-Online` zusaetzlich gegen GitHub) |
 | `Test-OnlineUpdate.ps1` | Echter Download, Installation und Rollback in temporaerer Testinstallation |
 
 ## Grafische Oberflaeche
@@ -50,7 +51,10 @@ von den Textlabels; diese koennen ihn nicht mehr verdecken.
   Tagesstart mit Uhrzeit einstellen. Mit **Plan speichern** die Aufgabe aktualisieren.
   Status abrufen, Aufgabe aktivieren/deaktivieren oder nach Bestaetigung entfernen.
   Der Tagesstart verwendet ebenfalls eine angemeldete Sitzung.
-- **Restore:** **Staende laden** zeigt gueltige Tages-/Monats-/Jahresstaende des
+- **Aufgaben einrichten ...** (Taskplanung): Ein Dialog fuer beide Aufgaben.
+  Haken = Aufgabe soll eingerichtet sein, ohne Haken wird eine vorhandene Aufgabe entfernt
+  (Sicherungsdateien bleiben immer erhalten). **Uebernehmen** legt an bzw. aktualisiert,
+  **Status anzeigen** zeigt beide Aufgaben. Siehe Abschnitt "Backup- und Update-Aufgabe".- **Restore:** **Staende laden** zeigt gueltige Tages-/Monats-/Jahresstaende des
   aktuellen Benutzers am angegebenen Sicherungsziel. Alternativ einen datierten
   Stand direkt auswaehlen. Zielordner und Kategorie waehlen und wiederherstellen.
   Bereits vorhandene Zieldateien werden immer ausgelassen. Zum Ersetzen bestehender
@@ -181,6 +185,32 @@ UNC-Ziele verwenden die bestehenden Zugriffsrechte des angemeldeten Benutzers.
 Fuer die Aufgabe sind UNC-Pfade verlaesslicher als gemappte Laufwerksbuchstaben.
 Es werden weder Netzwerkkennwoerter abgefragt noch Verbindungen eingerichtet.
 
+## Backup- und Update-Aufgabe
+
+Beide Aufgaben werden unter **Taskplanung → Aufgaben einrichten ...** konfiguriert (oder per
+`Install-BackupTask.ps1`). Sie laufen im Windows-Aufgabenplaner fuer den aktuellen Benutzer, versteckt und ohne
+Administratorrechte.
+
+| | Backup-Aufgabe | Update-Aufgabe |
+|---|---|---|
+| Name | `UserProfileBackup-<SID>` | `UserProfileBackupUpdate-<SID>` |
+| Start | nach Anmeldung (Standard 2 Min.), optional taeglich | nach Anmeldung (Standard 10 Min.), optional taeglich |
+| Aktion | `Backup-UserProfile.ps1` mit Aufbewahrung | `Update-UserProfileBackup.ps1` fuer die gewaehlte Quelle |
+| Optionen | Sicherungsziel, Protokollordner, Aufbewahrung | Repository-URL, Branch/Tag, **Nur pruefen** (Standard) oder **automatisch installieren** |
+| Protokoll | Protokollordner | `<Protokollordner>\update-task.log` (bei ueber 256 KB neu begonnen) |
+
+Die Update-Aufgabe prueft standardmaessig nur und protokolliert. Mit der Aktion **Pruefen und automatisch installieren**
+werden Updates ohne Rueckfrage aus der eingetragenen, oeffentlichen GitHub-Quelle installiert (Code wird ausgefuehrt:
+nur eigene, vertrauenswuerdige Quellen verwenden). Laeuft gerade ein Backup oder die GUI, schlaegt die Installation
+mit einer Protokollmeldung fehl und wird beim naechsten Start erneut versucht. Die Schaltflaechen **Aktivieren**,
+**Deaktivieren** und **Status abrufen** betreffen beide Aufgaben, **Aufgabe entfernen** nur die Backup-Aufgabe.
+
+```powershell
+# Update-Aufgabe per Skript: taeglich 07:15 und 10 Minuten nach Anmeldung nur pruefen
+.\Install-BackupTask.ps1 -UpdateTask -DailyAt '07:15'
+# Mit automatischer Installation aus einer eigenen Quelle:
+.\Install-BackupTask.ps1 -UpdateTask -UpdateMode Install -UpdateRepositoryUrl 'https://github.com/Benutzer/Repo' -UpdateRef main
+```
 ## Quellen und Zielstruktur
 
 Das Skript prueft `$env:USERPROFILE` und liest die tatsaechlichen Windows-Pfade

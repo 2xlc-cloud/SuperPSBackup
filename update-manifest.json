@@ -1,6 +1,6 @@
 {
     "Format":  1,
-    "Version":  "1.0.3",
+    "Version":  "1.0.4",
     "Files":  [
                   {
                       "Name":  "Backup-UserProfile.ps1",
@@ -9,8 +9,8 @@
                   },
                   {
                       "Name":  "Install-BackupTask.ps1",
-                      "Length":  4353,
-                      "SHA256":  "F85AFF3DC3A17EA7C6D0CC13D74D5B788CF52DB46CBE841916470C29B6C41C65"
+                      "Length":  7609,
+                      "SHA256":  "261A4B6B56F3E0F18291E9962E629985CA1EEF654BF8471A01E3FC9B35AD1211"
                   },
                   {
                       "Name":  "Restore-UserProfile.ps1",
@@ -19,13 +19,13 @@
                   },
                   {
                       "Name":  "Start-BackupGUI.ps1",
-                      "Length":  38341,
-                      "SHA256":  "23FDE3C4E3320CF8054A9702ABEB01DC9FC845D2E1C0E008D70E69EDF36310FC"
+                      "Length":  52807,
+                      "SHA256":  "1E7BE65AFE07777BA4DFE4E9812E0E060B00384C903428D1D8FDAE160D560BCA"
                   },
                   {
                       "Name":  "Update-UserProfileBackup.ps1",
-                      "Length":  19668,
-                      "SHA256":  "E3FF8A347B1FB22754D9109D62A50FCA637B3D9830D67BF86A5B12FCACC5FFF5"
+                      "Length":  19690,
+                      "SHA256":  "BF2F62BB7820544B414D7E4B1F17270497FC20B4D809080B35B275F26D0A314F"
                   },
                   {
                       "Name":  "New-UpdateManifest.ps1",
@@ -54,8 +54,13 @@
                   },
                   {
                       "Name":  "Test-FirstInstall.ps1",
-                      "Length":  20782,
-                      "SHA256":  "4489D50D7562F83A204A0E455CCD0F08D3BC2FE810A0224AAE97B65442837800"
+                      "Length":  20779,
+                      "SHA256":  "5D2CA0B4BD0A2540173665235E4022643DCA8BD432495D4C6D8F727490BB6BF8"
+                  },
+                  {
+                      "Name":  "Test-TaskDialog.ps1",
+                      "Length":  20839,
+                      "SHA256":  "6D775F138C006690490DB6D016E68FEF17B2A79B486677C5D9E1B506F46D1FE2"
                   },
                   {
                       "Name":  "FirstInstall.ps1",
@@ -64,8 +69,8 @@
                   },
                   {
                       "Name":  "README.md",
-                      "Length":  28416,
-                      "SHA256":  "DB0030F03DBD6EC67B5955D37AEB95BAAC2A63A797F62679D4C864DA1E54FFD8"
+                      "Length":  30767,
+                      "SHA256":  "C226BC4EA31621AF36998BC4A71A9F72326DDC7FD886EBD2D02C56C5FF1AB726"
                   }
               ]
 }
